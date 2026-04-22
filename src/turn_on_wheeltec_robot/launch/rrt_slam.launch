@@ -1,0 +1,12 @@
+<launch>
+<arg name="mapping_mode" default="gmapping" doc="opt: gmapping,hector,karto,cartographer"/>
+<arg name="local_planner" default="dwa" doc="opt: teb,dwa"/>
+
+<include file="$(find turn_on_wheeltec_robot)/launch/mapping.launch" >
+  <arg name="mapping_mode" value="$(arg mapping_mode)"/>
+  <arg name="local_planner" value="$(arg local_planner)"/>
+  <arg name="navigation"  value="true"/>
+</include>
+<include file="$(find turn_on_wheeltec_robot)/launch/simple.launch" />
+
+</launch>

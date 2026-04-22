@@ -1,0 +1,22 @@
+<launch>
+  <arg name="start_2d_mapping" default="true"/>
+  <arg name="start_qr_annotator" default="true"/>
+  <arg name="start_usb_cam" default="true"/>
+  <arg name="open_rviz" default="true"/>
+  <arg name="use_undistort" default="false"/>
+  <arg name="image_topic" default="/usb_cam/image_raw"/>
+  <arg name="camera_info_topic" default="/usb_cam/camera_info"/>
+
+  <include if="$(arg start_2d_mapping)" file="$(find turn_on_wheeltec_robot)/launch/rrt_slam.launch"/>
+
+  <group if="$(arg start_qr_annotator)">
+    <include if="$(arg start_usb_cam)" file="$(find usb_cam)/launch/usb_cam-test.launch"/>
+
+    <include file="$(find qr_map_annotator)/launch/qr_with_rviz.launch">
+      <arg name="open_rviz" value="$(arg open_rviz)"/>
+      <arg name="image_topic" value="$(arg image_topic)"/>
+      <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+      <arg name="use_undistort" value="$(arg use_undistort)"/>
+    </include>
+  </group>
+</launch>

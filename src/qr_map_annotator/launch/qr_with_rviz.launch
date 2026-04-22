@@ -1,0 +1,14 @@
+<launch>
+  <arg name="open_rviz" default="true"/>
+  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+  <arg name="camera_info_topic" default="/camera/rgb/camera_info"/>
+  <arg name="use_undistort" default="false"/>
+
+  <include file="$(find qr_map_annotator)/launch/qr_map_core.launch">
+    <arg name="image_topic" value="$(arg image_topic)"/>
+    <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    <arg name="use_undistort" value="$(arg use_undistort)"/>
+  </include>
+
+  <node if="$(arg open_rviz)" pkg="rviz" type="rviz" name="rviz_qr_map" args="-d $(find qr_map_annotator)/rviz/qr_map.rviz"/>
+</launch>

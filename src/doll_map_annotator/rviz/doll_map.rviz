@@ -1,0 +1,51 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Name: Tool Properties
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Enabled: true
+      Name: Grid
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: map
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /doll_mapper/markers
+      Name: DollMarkers
+      Queue Size: 1
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /doll_detector/debug_image
+      Name: DebugImage
+      Normalize Range: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: map
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 10
+      Focal Point: 0; 0; 0
+      Name: Current View
+      Pitch: 0.785
+      Yaw: 0.785
+Window Geometry:
+  Height: 900
+  Width: 1400
+  X: 50
+  Y: 50

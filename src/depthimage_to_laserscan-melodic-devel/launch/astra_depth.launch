@@ -1,0 +1,18 @@
+<launch>
+ <include file="$(find astra_camera)/launch/astra.launch" />
+     <node pkg="tf" type="static_transform_publisher" name="base_to_laser2" args="-0.15 0.00 0.6 0 0 0  base_footprint laser2 100" />
+
+    <node name="depth2laser2" pkg="depthimage_to_laserscan" type="depthimage_to_laserscan"  args= "standalone depthimage_to_lasersacn/DepthImageToLaserScanNodelet">
+    <remap from="image" to="/camera/depth/image"/>
+    <remap from="camera_info" to="/camera/depth/camera_info"/>
+
+    <param name="range_min" type="double" value="0.6"/>
+    <param name="range_max" type="double" value="2.5"/>
+    <param name="scan_height" type="int" value="200"/>
+    <param name="output_frame_id" type="str" value="laser2"/>
+    <remap from="scan" to="/scan2"/>
+
+	</node>
+
+</launch>
+ 

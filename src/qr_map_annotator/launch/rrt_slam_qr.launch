@@ -1,0 +1,11 @@
+<launch>
+  <arg name="open_rviz" default="true"/>
+  <arg name="use_undistort" default="false"/>
+
+  <include file="$(find turn_on_wheeltec_robot)/launch/rrt_slam.launch"/>
+  <include file="$(find usb_cam)/launch/usb_cam-test.launch"/>
+  <include file="$(find qr_map_annotator)/launch/qr_with_rviz.launch">
+    <arg name="open_rviz" value="$(arg open_rviz)"/>
+    <arg name="use_undistort" value="$(arg use_undistort)"/>
+  </include>
+</launch>

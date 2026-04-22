@@ -1,0 +1,268 @@
+<launch>
+    <!-- ========== 新增雷达型号支持 (2024) ========== -->
+    <!-- 新增: rplidar_A2m6, rplidar_A2m7, rplidar_A2m8, rplidar_A2m12, rplidar_S3, rplidar_T1, rplidar_S1_tcp, rplidar_S2e, ld06_stl, ld19_stl, stl27l -->
+    <!-- ========== 新增雷达型号支持 (2024) ========== -->
+    <arg name="rplidar_mode" 
+     default="rplidar_A2m6"
+     doc="opt: ls_M10_uart, ls_M10P_uart, ls_M10P_PLUS_uart, ls_M10_net, ls_M10P_net, ls_M10P_PLUS_net, ls_N10, ls_N10P, ls_N10_net, ls_N10P_net, ld_14, ld_19, ld_stl06n, stl27l, ld06_stl, ld19_stl, rplidar_A1_A2, rplidar_A2m6, rplidar_A2m7, rplidar_A2m8, rplidar_A2m12, rplidar_A3, rplidar_S1, rplidar_S1_tcp, rplidar_S2, rplidar_S2e, rplidar_S3, rplidar_T1, rplidar_C1, ltme_02a"/>
+
+    <!-- 镭神激光雷达过滤角度设置，默认为0即不过滤，过滤范围是0°~360° -->
+    <!--disable_min为过滤起始角度，disable_max为过滤结束角度，过滤范围是0°~360° -->
+    <!--Example: disable_min=[40,90]  disable_max=[50,120] 表示过滤掉40°~50°,90°~120°两个范围，过滤角度可以设置多个-->
+
+    <!-- 镭神M10 M10P N10 N10P过滤配置 -->
+    <param name="lslidar_driver_node/truncated_mode" value="0"/>    <!--0:不过滤 1:过滤-->
+    <rosparam param="lslidar_driver_node/disable_min">[120]</rosparam> <!--起始角度-->
+    <rosparam param="lslidar_driver_node/disable_max">[240]</rosparam> <!--结束角度-->
+    <!-- 镭神M10 M10P N10 N10P过滤配置 -->
+
+    <!-- 镭神LD-14过滤配置 -->
+    <param name="/LD14/flag_parted" type="bool" value="false"/>   <!--false:不过滤 true:过滤-->
+    <rosparam param="/LD14/disable_min">[120]</rosparam> <!--起始角度-->
+    <rosparam param="/LD14/disable_max">[240]</rosparam> <!--结束角度-->
+    <!-- 镭神LD-14过滤配置 -->
+
+    <!-- 镭神LD-19过滤配置 -->
+    <param name="/LD19/flag_parted" type="bool" value="false"/>   <!--false:不过滤 true:过滤-->
+    <rosparam param="/LD19/disable_min">[120]</rosparam> <!--起始角度-->
+    <rosparam param="/LD19/disable_max">[240]</rosparam> <!--结束角度-->
+    <!-- 镭神LD-19过滤配置 -->
+
+    <!-- 镭神LD-STL06N过滤配置 -->
+    <param name="/STL06N/flag_parted" value="false"/>   <!--false:不过滤 true:过滤-->
+    <rosparam param="/STL06N/disable_min">[120]</rosparam> <!--起始角度-->
+    <rosparam param="/STL06N/disable_max">[240]</rosparam> <!--结束角度-->
+    <!-- 镭神LD-STL06N过滤配置 -->
+
+    <!-- 思岚雷达配置 -->
+    <!--角度配置-->
+    <param name="/rplidarNode/angle_start"         type="double" value="0"  />   <!-- 扫描起始角度-->
+    <param name="/rplidarNode/angle_end"           type="double" value="360"/>   <!-- 扫描结束角度-->
+    <!-- <param name="/rplidarNode/angle_start"         type="double" value="270"/> -->   <!-- A1_moveit扫描起始角度-->
+    <!-- <param name="/rplidarNode/angle_end"           type="double" value="90"/>  -->   <!-- A1_moveit扫描结束角度-->
+    <!--<param name="/rplidarNode/angle_start"         type="double" value="315"/>-->   <!-- A2_moveit扫描起始角度-->
+    <!--<param name="/rplidarNode/angle_end"           type="double" value="135"/>-->   <!-- A2_moveit扫描结束角度-->
+    <!--<param name="/rplidarNode/angle_start"         type="double" value="250"/>-->   <!-- 建图时过滤后方盲区起始角度-->
+    <!--<param name="/rplidarNode/angle_end"           type="double" value="110"/>-->   <!-- 建图时过滤后方盲区结束角度-->
+    <param name="/rplidarNode/distance_min"        type="double" value="0"  /> <!-- 最小扫描距离-->
+    <param name="/rplidarNode/distance_max"        type="double" value="30" /> <!-- 最大扫描距离-->
+    <!--分区配置-->
+    <param name="/rplidarNode/is_parted"           type="bool"   value="false"/> <!--是否分区-->
+    <param name="/rplidarNode/angle1_start"        type="double" value="50"/> <!--第一个分区的起始角度-->
+    <param name="/rplidarNode/angle1_end"          type="double" value="70"/> <!--第一个分区的结束角度-->
+    <param name="/rplidarNode/angle2_start"        type="double" value="120"/> <!--第二个分区的起始角度--> 
+    <param name="/rplidarNode/angle2_end"          type="double" value="240"/> <!--第二个分区的结束角度--> 
+    <param name="/rplidarNode/angle3_start"        type="double" value="290"/> <!--第三个分区的起始角度-->
+    <param name="/rplidarNode/angle3_end"          type="double" value="310"/> <!--第三个分区的结束角度-->
+    <param name="/rplidarNode/angle4_start"        type="double" value="0"/> <!--第四个分区的起始角度-->
+    <param name="/rplidarNode/angle4_end"          type="double" value="0"/> <!--第四个分区的结束角度-->  
+    <!-- 思岚雷达配置 -->
+   
+    <!-- 启动镭神N10雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_N10')">
+        <include file="$(find lslidar_driver)/launch/lslidar_serial.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="N10"/> 
+    </group>
+
+    <!-- 启动镭神N10P雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_N10P')">
+        <include file="$(find lslidar_driver)/launch/lslidar_serial.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="N10_P"/> 
+    </group>
+
+    <!-- 启动镭神N10_net雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_N10_net')">
+        <include file="$(find lslidar_driver)/launch/lslidar_net.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="N10"/> 
+    </group>
+
+    <!-- 启动镭神N10P_net雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_N10P_net')">
+        <include file="$(find lslidar_driver)/launch/lslidar_net.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="N10_P"/> 
+    </group>
+
+    <!-- 启动镭神LD-14雷达 -->
+    <group if="$(eval rplidar_mode == 'ld_14')">
+        <include file="$(find ldlidar_14)/launch/ld14.launch"/>
+    </group>
+
+    <!-- 启动镭神LD-19雷达 -->
+    <group if="$(eval rplidar_mode == 'ld_19')">
+        <include file="$(find ldlidar_19)/launch/ld19.launch"/>
+    </group>
+
+    <!-- 启动镭神LD-STL06N雷达 -->
+    <group if="$(eval rplidar_mode == 'ld_stl06n')">
+        <include file="$(find ldlidar)/launch/stl06n.launch"/>
+    </group>
+
+    <!-- 启动思岚A1/A2雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_A1_A2')">
+        <include file="$(find rplidar_ros)/launch/rplidar.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚A3雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_A3')">
+        <include file="$(find rplidar_ros)/launch/rplidar_a3.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚S1雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_S1')">
+        <include file="$(find rplidar_ros)/launch/rplidar_s1.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚S2雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_S2')">
+        <include file="$(find rplidar_ros)/launch/rplidar_s2.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚C1雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_C1')">
+        <include file="$(find rplidar_ros)/launch/rplidar_c1.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动镭神M10_uart雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_M10_uart')">
+        <include file="$(find lslidar_driver)/launch/lslidar_serial.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="M10"/> 
+    </group>
+
+    <!-- 启动镭神M10P_uart雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_M10P_uart')">
+        <include file="$(find lslidar_driver)/launch/lslidar_serial.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="M10_P"/> 
+    </group>
+
+    <!-- 启动镭神M10P_PLUS_uart雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_M10P_PLUS_uart')">
+        <include file="$(find lslidar_driver)/launch/lslidar_serial.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="M10_PLUS"/> 
+    </group>
+
+    <!-- 启动镭神M10_net雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_M10_net')">
+        <include file="$(find lslidar_driver)/launch/lslidar_net.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="M10"/> 
+    </group>
+
+    <!-- 启动镭神M10P_net雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_M10P_net')">
+        <include file="$(find lslidar_driver)/launch/lslidar_net.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="M10_P"/> 
+    </group>
+
+    <!-- 启动镭神M10P_PLUS_net雷达 -->
+    <group if="$(eval rplidar_mode == 'ls_M10P_PLUS_net')">
+        <include file="$(find lslidar_driver)/launch/lslidar_net.launch"/>
+        <param name="lslidar_driver_node/lidar_name" value="M10_PLUS"/> 
+    </group>
+
+    <!-- 启动LTME-02A网络雷达 -->
+    <group if="$(eval rplidar_mode == 'ltme_02a')">
+        <include file="$(find ltme_node)/launch/ltme02a.launch"/>
+    </group>
+
+    <!-- ========== 新增思岚雷达型号支持 (2024) ========== -->
+    <!-- 启动思岚A2m6雷达 (256000波特率) -->
+    <group if="$(eval rplidar_mode == 'rplidar_A2m6')">
+        <include file="$(find rplidar_ros)/launch/rplidar_a2m6.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚A2m7雷达 (256000波特率) -->
+    <group if="$(eval rplidar_mode == 'rplidar_A2m7')">
+        <include file="$(find rplidar_ros)/launch/rplidar_a2m7.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚A2m8雷达 (256000波特率) -->
+    <group if="$(eval rplidar_mode == 'rplidar_A2m8')">
+        <include file="$(find rplidar_ros)/launch/rplidar_a2m8.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚A2m12雷达 (256000波特率) -->
+    <group if="$(eval rplidar_mode == 'rplidar_A2m12')">
+        <include file="$(find rplidar_ros)/launch/rplidar_a2m12.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚S1雷达 (TCP连接模式) -->
+    <group if="$(eval rplidar_mode == 'rplidar_S1_tcp')">
+        <include file="$(find rplidar_ros)/launch/rplidar_s1_tcp.launch"/>
+    </group>
+
+    <!-- 启动思岚S2e雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_S2e')">
+        <include file="$(find rplidar_ros)/launch/rplidar_s2e.launch"/>
+    </group>
+
+    <!-- 启动思岚S3雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_S3')">
+        <include file="$(find rplidar_ros)/launch/rplidar_s3.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+
+    <!-- 启动思岚T1雷达 -->
+    <group if="$(eval rplidar_mode == 'rplidar_T1')">
+        <include file="$(find rplidar_ros)/launch/rplidar_t1.launch"/>
+        <param name="/rplidarNode/serial_port" value="/dev/wheeltec_lidar"/>
+    </group>
+    <!-- ========== 新增思岚雷达型号支持 (2024) ========== -->
+
+    <!-- ========== 新增镭神LD06/LD19 STL版雷达支持 (2024) ========== -->
+    <!-- 启动乐动STL27L雷达 (ldlidar包, 921600波特率) -->
+    <group if="$(eval rplidar_mode == 'stl27l')">
+        <node name="STL27L" pkg="ldlidar" type="ldlidar" output="screen">
+            <param name="product_name" value="LDLiDAR_STL27L"/>
+            <param name="topic_name" value="scan"/>
+            <param name="frame_id" value="laser"/>
+            <param name="enable_serial_or_network_communication" value="true"/>
+            <param name="port_name" value="/dev/ttyUSB1"/>
+            <param name="port_baudrate" value="921600"/>
+            <param name="laser_scan_dir" type="bool" value="true"/>
+            <param name="enable_angle_crop_func" type="bool" value="false"/>
+            <param name="angle_crop_min" type="double" value="135.0"/>
+            <param name="angle_crop_max" type="double" value="225.0"/>
+        </node>
+    </group>
+
+    <!-- 启动镭神LD06 STL版雷达 (ldlidar_stl_ros包) -->
+    <group if="$(eval rplidar_mode == 'ld06_stl')">
+        <node name="LD06" pkg="ldlidar_stl_ros" type="ldlidar_stl_ros_node" output="screen">
+            <param name="product_name" value="LDLiDAR_LD06"/>
+            <param name="topic_name" value="scan"/>
+            <param name="frame_id" value="laser"/>
+            <param name="port_name" value="/dev/wheeltec_lidar"/>
+            <param name="port_baudrate" value="230400"/>
+            <param name="laser_scan_dir" type="bool" value="true"/>
+            <param name="enable_angle_crop_func" type="bool" value="false"/>
+            <param name="angle_crop_min" type="double" value="135.0"/>
+            <param name="angle_crop_max" type="double" value="225.0"/>
+        </node>
+    </group>
+
+    <!-- 启动镭神LD19 STL版雷达 (ldlidar_stl_ros包) -->
+    <group if="$(eval rplidar_mode == 'ld19_stl')">
+        <node name="LD19" pkg="ldlidar_stl_ros" type="ldlidar_stl_ros_node" output="screen">
+            <param name="product_name" value="LDLiDAR_LD19"/>
+            <param name="topic_name" value="scan"/>
+            <param name="frame_id" value="laser"/>
+            <param name="port_name" value="/dev/wheeltec_lidar"/>
+            <param name="port_baudrate" value="230400"/>
+            <param name="laser_scan_dir" type="bool" value="true"/>
+            <param name="enable_angle_crop_func" type="bool" value="false"/>
+            <param name="angle_crop_min" type="double" value="135.0"/>
+            <param name="angle_crop_max" type="double" value="225.0"/>
+        </node>
+    </group>
+    <!-- ========== 新增镭神LD06/LD19 STL版雷达支持 (2024) ========== -->
+
+</launch>
+

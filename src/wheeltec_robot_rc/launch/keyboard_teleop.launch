@@ -1,0 +1,13 @@
+<launch>
+  <arg name="cmd_vel_topic" default="/cmd_vel"/>
+  <arg name="use_terminal" default="true"/>
+  <arg name="terminal_prefix" default="x-terminal-emulator -e"/>
+
+  <node if="$(arg use_terminal)" pkg="wheeltec_robot_rc" type="turtlebot_teleop_key.py" name="turtlebot_teleop_keyboard" output="screen" launch-prefix="$(arg terminal_prefix)">
+    <remap from="~cmd_vel" to="$(arg cmd_vel_topic)"/>
+  </node>
+  <node unless="$(arg use_terminal)" pkg="wheeltec_robot_rc" type="turtlebot_teleop_key.py" name="turtlebot_teleop_keyboard" output="screen">
+    <remap from="~cmd_vel" to="$(arg cmd_vel_topic)"/>
+  </node>
+</launch>
+

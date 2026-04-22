@@ -1,0 +1,104 @@
+<launch>
+  <!-- [auto2d-v0.1.0][2026-04-14] 一键自主2D建图总入口 -->
+  <!-- [auto2d-v0.1.1][2026-04-14] 新增：一键打开RRT建图RViz配置 -->
+  <!-- [auto2d-v0.2.0][2026-04-22] 新增：融合二维码/娃娃地图标注与退出自动导图 -->
+  <arg name="open_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find turn_on_wheeltec_robot)/rviz/auto_2d_mapping.rviz"/>
+  <!-- [auto2d-v0.1.3][2026-04-14] 建图与导航算法切换 -->
+  <arg name="mapping_mode" default="gmapping" doc="opt: gmapping,hector,karto,cartographer"/>
+  <arg name="local_planner" default="teb" doc="opt: teb,dwa"/>
+  <arg name="startup_delay" default="8.0"/>
+  <arg name="min_subscribers" default="2"/>
+  <arg name="point_interval" default="0.3"/>
+  <arg name="publish_rounds" default="2"/>
+
+  <!-- [auto2d-v0.1.0][2026-04-14] 探索边界矩形，map坐标系 -->
+  <arg name="frame_id" default="map"/>
+  <arg name="min_x" default="-10.0"/>
+  <arg name="max_x" default="10.0"/>
+  <arg name="min_y" default="-10.0"/>
+  <arg name="max_y" default="10.0"/>
+
+  <!-- [auto2d-v0.1.0][2026-04-14] RRT生长树起点 -->
+  <arg name="start_x" default="0.0"/>
+  <arg name="start_y" default="0.0"/>
+
+  <!-- [auto2d-v0.2.0][2026-04-22] 视觉标注输入与开关 -->
+  <arg name="start_usb_cam" default="true"/>
+  <arg name="image_topic" default="/usb_cam/image_raw"/>
+  <arg name="camera_info_topic" default="/usb_cam/camera_info"/>
+  <arg name="use_undistort" default="false"/>
+  <arg name="start_qr_annotator" default="true"/>
+  <arg name="start_doll_annotator" default="true"/>
+
+  <!-- [auto2d-v0.2.0][2026-04-22] 标注落盘与导图参数 -->
+  <arg name="map_output_dir" default="$(find turn_on_wheeltec_robot)/map/auto2d_exports"/>
+  <arg name="map_name_prefix" default="auto2d_map"/>
+  <arg name="qr_landmark_file" default="$(arg map_output_dir)/qr_landmarks.json"/>
+  <arg name="doll_landmark_file" default="$(arg map_output_dir)/doll_landmarks.json"/>
+  <arg name="map_topic" default="map"/>
+
+  <!-- [auto2d-v0.1.0][2026-04-14] 复用现有建图+探索主链路 -->
+  <include file="$(find turn_on_wheeltec_robot)/launch/rrt_slam.launch">
+    <arg name="mapping_mode" value="$(arg mapping_mode)"/>
+    <arg name="local_planner" value="$(arg local_planner)"/>
+  </include>
+
+  <!-- [auto2d-v0.2.0][2026-04-22] 摄像头只启动一次，供二维码和娃娃识别共用 -->
+  <include if="$(arg start_usb_cam)" file="$(find usb_cam)/launch/usb_cam-test.launch"/>
+
+  <!-- [auto2d-v0.2.0][2026-04-22] 二维码标注（红色） -->
+  <group if="$(arg start_qr_annotator)">
+    <include file="$(find qr_map_annotator)/launch/qr_map_core.launch">
+      <arg name="start_usb_cam" value="false"/>
+      <arg name="start_mapper" value="true"/>
+      <arg name="image_topic" value="$(arg image_topic)"/>
+      <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+      <arg name="use_undistort" value="$(arg use_undistort)"/>
+      <arg name="map_frame" value="$(arg frame_id)"/>
+      <arg name="landmark_file" value="$(arg qr_landmark_file)"/>
+    </include>
+  </group>
+
+  <!-- [auto2d-v0.2.0][2026-04-22] 娃娃标注（蓝色） -->
+  <group if="$(arg start_doll_annotator)">
+    <include file="$(find doll_map_annotator)/launch/doll_map_core.launch">
+      <arg name="start_usb_cam" value="false"/>
+      <arg name="start_mapper" value="true"/>
+      <arg name="image_topic" value="$(arg image_topic)"/>
+      <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+      <arg name="map_frame" value="$(arg frame_id)"/>
+      <arg name="landmark_file" value="$(arg doll_landmark_file)"/>
+    </include>
+  </group>
+
+  <!-- [auto2d-v0.1.0][2026-04-14] 自动初始化clicked_point，替代RViz手工打点 -->
+  <node pkg="turn_on_wheeltec_robot" type="auto_init_explore.py" name="auto_init_explore" output="screen">
+    <param name="startup_delay" value="$(arg startup_delay)"/>
+    <param name="min_subscribers" value="$(arg min_subscribers)"/>
+    <param name="point_interval" value="$(arg point_interval)"/>
+    <param name="publish_rounds" value="$(arg publish_rounds)"/>
+    <param name="frame_id" value="$(arg frame_id)"/>
+    <param name="min_x" value="$(arg min_x)"/>
+    <param name="max_x" value="$(arg max_x)"/>
+    <param name="min_y" value="$(arg min_y)"/>
+    <param name="max_y" value="$(arg max_y)"/>
+    <param name="start_x" value="$(arg start_x)"/>
+    <param name="start_y" value="$(arg start_y)"/>
+  </node>
+
+  <!-- [auto2d-v0.2.0][2026-04-22] 退出roslaunch时自动保存带标注地图并导出GeoTIFF -->
+  <node pkg="turn_on_wheeltec_robot" type="annotated_map_exporter.py" name="annotated_map_exporter" output="screen">
+    <param name="output_dir" value="$(arg map_output_dir)"/>
+    <param name="map_topic" value="$(arg map_topic)"/>
+    <param name="map_name_prefix" value="$(arg map_name_prefix)"/>
+    <param name="qr_landmark_file" value="$(arg qr_landmark_file)"/>
+    <param name="doll_landmark_file" value="$(arg doll_landmark_file)"/>
+    <param name="qr_color_bgr" value="[0, 0, 255]"/>
+    <param name="doll_color_bgr" value="[255, 0, 0]"/>
+    <param name="trigger_on_shutdown" value="true"/>
+  </node>
+
+  <!-- [auto2d-v0.1.1][2026-04-14] 启动RViz并加载自主建图显示配置 -->
+  <node if="$(arg open_rviz)" pkg="rviz" type="rviz" name="rviz_auto2d" args="-d $(arg rviz_config)"/>
+</launch>
