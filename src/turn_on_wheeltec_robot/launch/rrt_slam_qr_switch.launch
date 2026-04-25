@@ -1,7 +1,10 @@
 <launch>
   <arg name="start_2d_mapping" default="true"/>
   <arg name="start_qr_annotator" default="true"/>
-  <arg name="start_usb_cam" default="true"/>
+  <arg name="start_camera" default="true"/>
+  <arg name="camera_mode" default="Astra_Pro"
+       doc="opt: Astra_S,Astra_Pro,Astra_Pro_Plus,Astra_Dabai,Astra_Gemini,RgbCam,Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
+  <arg name="if_usb_cam" default="true"/>
   <arg name="open_rviz" default="true"/>
   <arg name="use_undistort" default="false"/>
   <arg name="image_topic" default="/usb_cam/image_raw"/>
@@ -10,7 +13,10 @@
   <include if="$(arg start_2d_mapping)" file="$(find turn_on_wheeltec_robot)/launch/rrt_slam.launch"/>
 
   <group if="$(arg start_qr_annotator)">
-    <include if="$(arg start_usb_cam)" file="$(find usb_cam)/launch/usb_cam-test.launch"/>
+    <include if="$(arg start_camera)" file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch">
+      <arg name="camera_mode" value="$(arg camera_mode)"/>
+      <arg name="if_usb_cam" value="$(arg if_usb_cam)"/>
+    </include>
 
     <include file="$(find qr_map_annotator)/launch/qr_with_rviz.launch">
       <arg name="open_rviz" value="$(arg open_rviz)"/>

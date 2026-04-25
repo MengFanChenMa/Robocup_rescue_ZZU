@@ -23,8 +23,11 @@
   <arg name="start_x" default="0.0"/>
   <arg name="start_y" default="0.0"/>
 
-  <!-- [auto2d-v0.2.0][2026-04-22] 视觉标注输入与开关 -->
-  <arg name="start_usb_cam" default="true"/>
+  <!-- [auto2d-v0.2.1][2026-04-23] 视觉标注输入与开关（默认使用ros_astra_camera） -->
+  <arg name="start_camera" default="true"/>
+  <arg name="camera_mode" default="Astra_Pro"
+       doc="opt: Astra_S,Astra_Pro,Astra_Pro_Plus,Astra_Dabai,Astra_Gemini,RgbCam,Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
+  <arg name="if_usb_cam" default="true"/>
   <arg name="image_topic" default="/usb_cam/image_raw"/>
   <arg name="camera_info_topic" default="/usb_cam/camera_info"/>
   <arg name="use_undistort" default="false"/>
@@ -44,8 +47,11 @@
     <arg name="local_planner" value="$(arg local_planner)"/>
   </include>
 
-  <!-- [auto2d-v0.2.0][2026-04-22] 摄像头只启动一次，供二维码和娃娃识别共用 -->
-  <include if="$(arg start_usb_cam)" file="$(find usb_cam)/launch/usb_cam-test.launch"/>
+  <!-- [auto2d-v0.2.1][2026-04-23] 摄像头只启动一次，供二维码和娃娃识别共用 -->
+  <include if="$(arg start_camera)" file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch">
+    <arg name="camera_mode" value="$(arg camera_mode)"/>
+    <arg name="if_usb_cam" value="$(arg if_usb_cam)"/>
+  </include>
 
   <!-- [auto2d-v0.2.0][2026-04-22] 二维码标注（红色） -->
   <group if="$(arg start_qr_annotator)">
