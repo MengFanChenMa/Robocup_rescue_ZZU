@@ -11,6 +11,8 @@ import subprocess
 import cv2
 import numpy as np
 import rospy
+import tf.transformations
+from nav_msgs.msg import OccupancyGrid
 
 try:
     import yaml
@@ -35,8 +37,13 @@ class AnnotatedMapExporter(object):
         self.text_scale = float(rospy.get_param("~text_scale", 0.5))
         self.text_thickness = int(rospy.get_param("~text_thickness", 1))
         self.trigger_on_shutdown = bool(rospy.get_param("~trigger_on_shutdown", True))
+        self.occupied_thresh = float(rospy.get_param("~occupied_thresh", 0.65))
+        self.free_thresh = float(rospy.get_param("~free_thresh", 0.196))
 
+        self._current_map = None
         self._saved_once = False
+
+        rospy.Subscriber(self.map_topic, OccupancyGrid, self._map_callback, queue_size=1)
         rospy.on_shutdown(self._on_shutdown)
 
         rospy.loginfo("[annotated_map_exporter] ready, output_dir=%s", self.output_dir)
@@ -44,6 +51,59 @@ class AnnotatedMapExporter(object):
     def _ensure_dir(self, path):
         if not os.path.exists(path):
             os.makedirs(path)
+
+    def _map_callback(self, msg):
+        self._current_map = msg
+
+    def _save_map_locally(self, msg, base_path):
+        """替代 map_saver，直接从内存保存地图到磁盘。"""
+        try:
+            w = msg.info.width
+            h = msg.info.height
+            if w <= 0 or h <= 0:
+                return False
+
+            # 数据处理：ROS地图是1D数组，值范围[-1, 100]
+            data = np.array(msg.data, dtype=np.int8).reshape((h, w))
+            # ROS坐标原点在左下角，PGM图像原点在左上角，需要上下翻转
+            data = np.flipud(data)
+
+            # 模拟 map_saver 的 trinary 逻辑
+            img = np.zeros((h, w), dtype=np.uint8)
+            img[data == -1] = 205                                     # 未知
+            img[data >= self.occupied_thresh * 100] = 0               # 占用
+            img[(data <= self.free_thresh * 100) & (data >= 0)] = 254 # 空闲
+            img[(data > self.free_thresh * 100) & (data < self.occupied_thresh * 100)] = 205
+
+            pgm_path = base_path + ".pgm"
+            cv2.imwrite(pgm_path, img)
+
+            # 提取 Yaw 角
+            q = [
+                msg.info.origin.orientation.x,
+                msg.info.origin.orientation.y,
+                msg.info.origin.orientation.z,
+                msg.info.origin.orientation.w
+            ]
+            _, _, yaw = tf.transformations.euler_from_quaternion(q)
+
+            yaml_path = base_path + ".yaml"
+            with open(yaml_path, "w") as f:
+                f.write("image: %s\n" % os.path.basename(pgm_path))
+                f.write("resolution: %f\n" % msg.info.resolution)
+                f.write("origin: [%f, %f, %f]\n" % (
+                    msg.info.origin.position.x,
+                    msg.info.origin.position.y,
+                    yaw
+                ))
+                f.write("negate: 0\n")
+                f.write("occupied_thresh: %f\n" % self.occupied_thresh)
+                f.write("free_thresh: %f\n" % self.free_thresh)
+
+            return True
+        except Exception as exc:
+            rospy.logerr("[annotated_map_exporter] local map save failed: %s", str(exc))
+            return False
 
     def _run_map_saver(self, base_path):
         cmd = ["rosrun", "map_server", "map_saver", "-f", base_path, "map:=%s" % self.map_topic]
@@ -183,7 +243,15 @@ class AnnotatedMapExporter(object):
         base_path = os.path.join(self.output_dir, "%s_%s" % (self.map_name_prefix, stamp))
         yaml_path = base_path + ".yaml"
 
-        if not self._run_map_saver(base_path):
+        success = False
+        if self._current_map is not None:
+            rospy.loginfo("[annotated_map_exporter] saving map from memory...")
+            success = self._save_map_locally(self._current_map, base_path)
+        else:
+            rospy.logwarn("[annotated_map_exporter] no map in memory, trying map_saver as fallback...")
+            success = self._run_map_saver(base_path)
+
+        if not success:
             rospy.logerr("[annotated_map_exporter] map save failed")
             return
         if not os.path.exists(yaml_path):

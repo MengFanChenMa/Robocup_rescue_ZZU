@@ -25,11 +25,15 @@
 
   <!-- [auto2d-v0.2.1][2026-04-23] 视觉标注输入与开关（默认使用ros_astra_camera） -->
   <arg name="start_camera" default="true"/>
-  <arg name="camera_mode" default="Astra_Pro"
+  <arg name="camera_mode" default="RgbCam"
        doc="opt: Astra_S,Astra_Pro,Astra_Pro_Plus,Astra_Dabai,Astra_Gemini,RgbCam,Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
   <arg name="if_usb_cam" default="true"/>
-  <arg name="image_topic" default="/usb_cam/image_raw"/>
-  <arg name="camera_info_topic" default="/usb_cam/camera_info"/>
+  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+  <arg name="camera_info_topic" default="/camera/rgb/camera_info"/>
+  <arg name="rviz_image_topic" default="/camera/rgb/recognition_image"
+       doc="RViz中显示的图像话题"/>
+  <arg name="rviz_image_source_topic" default="$(arg image_topic)"
+       doc="转发到RViz显示入口的源图像话题，默认使用原始相机图像，可切换为/qr_detector/debug_image或/doll_detector/debug_image"/>
   <arg name="use_undistort" default="false"/>
   <arg name="start_qr_annotator" default="true"/>
   <arg name="start_doll_annotator" default="true"/>
@@ -77,6 +81,10 @@
       <arg name="landmark_file" value="$(arg doll_landmark_file)"/>
     </include>
   </group>
+
+  <!-- [auto2d-v0.2.3][2026-04-25] 统一RViz图像订阅入口，默认转发识别结果叠加图，便于直接观察识别情况 -->
+  <node if="$(arg start_camera)" pkg="topic_tools" type="relay" name="rviz_camera_relay"
+        args="$(arg rviz_image_source_topic) $(arg rviz_image_topic)" output="screen"/>
 
   <!-- [auto2d-v0.1.0][2026-04-14] 自动初始化clicked_point，替代RViz手工打点 -->
   <node pkg="turn_on_wheeltec_robot" type="auto_init_explore.py" name="auto_init_explore" output="screen">

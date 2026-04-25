@@ -1,0 +1,117 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /RecognitionImage1
+        - /QrDebugImage1
+        - /DollDebugImage1
+      Splitter Ratio: 0.5
+    Tree Height: 600
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded:
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.58
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz/Time
+    Experimental: false
+    Name: Time
+    SyncMode: 0
+    SyncSource: RecognitionImage
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /camera/rgb/recognition_image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: RecognitionImage
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /qr_detector/debug_image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: QrDebugImage
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /doll_detector/debug_image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: DollDebugImage
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: map
+    Frame Rate: 20
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Angle: 0
+      Class: rviz/XYOrbit
+      Distance: 7
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Name: Current View
+      Near Clip Distance: 0.01
+      Pitch: 1.57
+      Target Frame: map
+      Value: XYOrbit (rviz)
+      Yaw: 0
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 960
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000002d00000033afc0200000008fb000000100044006900730070006c0061007900730100000000000002b6000000d000fffffffb0000001200530065006c0065006300740069006f006e00000002bc0000005e0000005e00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000284000000ab0000007c00fffffffb0000000a005600690065007700730100000334000000760000007c00fffffffb0000000a00540069006d006500000003b0000000fa000000fa00ffffff000000010000018f0000033afc0200000003fb000000100044006900730070006c00610079007300000000000000033a000000d000fffffffb0000000a00560069006500770073000000033a000000760000007c00fffffffb0000000a00540069006d006500000003b0000000fa000000fa00ffffff000000000000000000000004000000040000000800000008fc00000000
+  Selection:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 1800
+  X: 80
+  Y: 50

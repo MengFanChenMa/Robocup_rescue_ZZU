@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import json
 import os
 import zlib
 
 import rospy
+import tf2_geometry_msgs
 import tf2_ros
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
@@ -80,20 +82,22 @@ class DollMapperNode(object):
         try:
             with open(self.landmark_file, "r") as f:
                 data = json.load(f)
-        except Exception:
-            return
-        for key, item in data.items():
-            self.landmarks[key] = {
-                "x": float(item["x"]),
-                "y": float(item["y"]),
-                "z": float(item["z"]),
-                "qx": float(item["qx"]),
-                "qy": float(item["qy"]),
-                "qz": float(item["qz"]),
-                "qw": float(item["qw"]),
-                "seen_count": int(item.get("seen_count", 1)),
-                "label": item.get("label", key),
-            }
+            if not isinstance(data, dict):
+                return
+            for key, item in data.items():
+                self.landmarks[key] = {
+                    "x": float(item["x"]),
+                    "y": float(item["y"]),
+                    "z": float(item["z"]),
+                    "qx": float(item["qx"]),
+                    "qy": float(item["qy"]),
+                    "qz": float(item["qz"]),
+                    "qw": float(item["qw"]),
+                    "seen_count": int(item.get("seen_count", 1)),
+                    "label": item.get("label", key),
+                }
+        except Exception as e:
+            rospy.logwarn("Failed to load landmarks from %s: %s", self.landmark_file, str(e))
 
     def _publish_markers(self):
         array_msg = MarkerArray()

@@ -1,11 +1,11 @@
 <launch>
-    <arg name="camera_mode"  default="Astra_S" 
+    <arg name="camera_mode"  default="RgbCam" 
     doc="opt: Astra_S, Astra_Pro, Astra_Pro_Plus, Astra_Dabai,Astra_Gemini,
               RgbCam,
               Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
 
 <!-- false：启动深度相机   true：除astra-s相机外，优先启动RgbCam相机，没有RgbCam相机的启动深度相机的RGB功能 -->
-    <arg name="if_usb_cam" default="false"/>
+    <arg name="if_usb_cam" default="true"/>
 
     <group if="$(eval if_usb_cam and (camera_mode=='Astra_Pro' or 
                                       camera_mode=='Astra_Pro_Plus' or 
@@ -25,20 +25,22 @@
                               camera_mode=='Astra_Pro_Plus+RgbCam' or 
                               camera_mode=='Astra_Dabai+RgbCam' or
                               camera_mode=='Astra_Gemini+RgbCam')" 
-                              name="video_device" value="/dev/RgbCam" />
+                              name="video_device" value="/dev/video0" />
             <param if="$(eval camera_mode=='Astra_Pro' or 
                               camera_mode=='Astra_Pro_Plus' or 
                               camera_mode=='Astra_Dabai' or
                               camera_mode=='Astra_Gemini')" 
-                              name="video_device" value="/dev/$(arg camera_mode)"/>
+                              name="video_device" value="/dev/video0"/>
             <param name="image_width" value="640" />
             <param name="image_height" value="480" />
             <param name="pixel_format" value="yuyv" />
             <param name="camera_frame_id" value="usb_cam" />
             <param name="io_method" value="mmap"/>
+            <remap from="image_raw" to="/camera/rgb/image_raw"/>
+            <remap from="camera_info" to="/camera/rgb/camera_info"/>
+            <remap from="/usb_cam/image_raw" to="/camera/rgb/image_raw"/>
+            <remap from="/usb_cam/camera_info" to="/camera/rgb/camera_info"/>
             <remap from="/usb_cam/image_raw/compressed" to="/image_raw/compressed"/>
-            <remap from="/camera/color/image_raw" to="/camera/rgb/image_raw"/>
-            <remap from="/camera/color/camera_info" to="/camera/rgb/camera_info"/>
         </node>
     </group>
 

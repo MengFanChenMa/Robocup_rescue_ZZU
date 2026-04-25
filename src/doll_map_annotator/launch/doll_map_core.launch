@@ -1,6 +1,6 @@
 <launch>
-  <arg name="image_topic" default="/usb_cam/image_raw"/>
-  <arg name="camera_info_topic" default="/usb_cam/camera_info"/>
+  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+  <arg name="camera_info_topic" default="/camera/rgb/camera_info"/>
   <arg name="start_usb_cam" default="true"/>
   <arg name="start_mapper" default="true"/>
   <arg name="map_frame" default="map"/>

@@ -1,0 +1,48 @@
+<launch>
+  <!-- 最小化视觉识别测试：相机 + 二维码识别 + 娃娃识别 + RViz -->
+  <arg name="open_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find turn_on_wheeltec_robot)/rviz/vision_recognition_test.rviz"/>
+
+  <arg name="start_camera" default="true"/>
+  <arg name="camera_mode" default="RgbCam"
+       doc="opt: Astra_S,Astra_Pro,Astra_Pro_Plus,Astra_Dabai,Astra_Gemini,RgbCam,Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
+  <arg name="if_usb_cam" default="true"/>
+
+  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+  <arg name="camera_info_topic" default="/camera/rgb/camera_info"/>
+  <arg name="recognition_image_topic" default="/camera/rgb/recognition_image"/>
+  <arg name="recognition_source_topic" default="$(arg image_topic)"
+       doc="RViz主图像窗口默认来源，默认直接显示原始图像"/>
+
+  <arg name="start_qr_detector" default="true"/>
+  <arg name="start_doll_detector" default="true"/>
+  <arg name="detect_rate_hz" default="8.0"/>
+  <arg name="use_undistort" default="false"/>
+  <arg name="publish_debug_image" default="true"/>
+
+  <include if="$(arg start_camera)" file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch">
+    <arg name="camera_mode" value="$(arg camera_mode)"/>
+    <arg name="if_usb_cam" value="$(arg if_usb_cam)"/>
+  </include>
+
+  <node if="$(arg start_qr_detector)" pkg="qr_map_annotator" type="qr_detector.py" name="qr_detector" output="screen">
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    <param name="detect_rate_hz" value="$(arg detect_rate_hz)"/>
+    <param name="use_undistort" value="$(arg use_undistort)"/>
+    <param name="publish_debug_image" value="$(arg publish_debug_image)"/>
+    <param name="enable_clahe" value="$(arg enable_clahe)"/>
+  </node>
+
+  <node if="$(arg start_doll_detector)" pkg="doll_map_annotator" type="doll_detector.py" name="doll_detector" output="screen">
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    <param name="detect_rate_hz" value="$(arg detect_rate_hz)"/>
+    <param name="publish_debug_image" value="$(arg publish_debug_image)"/>
+  </node>
+
+  <node pkg="topic_tools" type="relay" name="rviz_recognition_relay"
+        args="$(arg recognition_source_topic) $(arg recognition_image_topic)" output="screen"/>
+
+  <node if="$(arg open_rviz)" pkg="rviz" type="rviz" name="rviz_vision_test" args="-d $(arg rviz_config)"/>
+</launch>

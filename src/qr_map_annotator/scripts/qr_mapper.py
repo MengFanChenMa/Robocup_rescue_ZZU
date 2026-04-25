@@ -117,8 +117,8 @@ class QrMapperNode(object):
             sphere.scale.y = 0.18
             sphere.scale.z = 0.18
             sphere.color.a = 1.0
-            sphere.color.r = 1.0
-            sphere.color.g = 0.0
+            sphere.color.r = 0.0
+            sphere.color.g = 1.0
             sphere.color.b = 0.0
             array_msg.markers.append(sphere)
 

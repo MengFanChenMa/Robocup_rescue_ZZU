@@ -2,13 +2,13 @@
   <arg name="start_2d_mapping" default="true"/>
   <arg name="start_qr_annotator" default="true"/>
   <arg name="start_camera" default="true"/>
-  <arg name="camera_mode" default="Astra_Pro"
+  <arg name="camera_mode" default="RgbCam"
        doc="opt: Astra_S,Astra_Pro,Astra_Pro_Plus,Astra_Dabai,Astra_Gemini,RgbCam,Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
   <arg name="if_usb_cam" default="true"/>
   <arg name="open_rviz" default="true"/>
   <arg name="use_undistort" default="false"/>
-  <arg name="image_topic" default="/usb_cam/image_raw"/>
-  <arg name="camera_info_topic" default="/usb_cam/camera_info"/>
+  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+  <arg name="camera_info_topic" default="/camera/rgb/camera_info"/>
 
   <include if="$(arg start_2d_mapping)" file="$(find turn_on_wheeltec_robot)/launch/rrt_slam.launch"/>
 

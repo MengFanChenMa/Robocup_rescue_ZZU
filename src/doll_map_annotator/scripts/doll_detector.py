@@ -22,19 +22,26 @@ class DollDetectorNode(object):
         self.label = rospy.get_param("~label", "doll")
         self.output_frame_id = rospy.get_param("~output_frame_id", "")
 
-        self.lower_blue = np.array(rospy.get_param("~lower_blue", [100, 100, 120]), dtype=np.uint8)
-        self.upper_blue = np.array(rospy.get_param("~upper_blue", [115, 220, 255]), dtype=np.uint8)
-        self.lower_white = np.array(rospy.get_param("~lower_white", [0, 0, 200]), dtype=np.uint8)
-        self.upper_white = np.array(rospy.get_param("~upper_white", [180, 30, 255]), dtype=np.uint8)
+        self.lower_blue = np.array(rospy.get_param("~lower_blue", [95, 70, 60]), dtype=np.uint8)
+        self.upper_blue = np.array(rospy.get_param("~upper_blue", [130, 255, 255]), dtype=np.uint8)
+        self.lower_white = np.array(rospy.get_param("~lower_white", [0, 0, 175]), dtype=np.uint8)
+        self.upper_white = np.array(rospy.get_param("~upper_white", [180, 70, 255]), dtype=np.uint8)
 
-        self.min_blue_area = float(rospy.get_param("~min_blue_area", 1000.0))
-        self.min_white_area = float(rospy.get_param("~min_white_area", 500.0))
-        self.max_distance_ratio = float(rospy.get_param("~max_distance_ratio", 2.0))
+        self.min_blue_area = float(rospy.get_param("~min_blue_area", 700.0))
+        self.min_white_area = float(rospy.get_param("~min_white_area", 180.0))
+        self.min_white_ratio = float(rospy.get_param("~min_white_ratio", 0.01))
+        self.blue_padding_ratio = float(rospy.get_param("~blue_padding_ratio", 0.18))
         self.target_width_m = float(rospy.get_param("~target_width_m", 0.10))
         self.target_height_m = float(rospy.get_param("~target_height_m", 0.16))
 
         self.period = 1.0 / max(self.detect_rate_hz, 1.0)
         self.last_process = rospy.Time(0)
+        self.kernel3 = np.ones((3, 3), np.uint8)
+
+        self.fallback_fx = float(rospy.get_param("~fallback_fx", 525.0))
+        self.fallback_fy = float(rospy.get_param("~fallback_fy", 525.0))
+        self.use_fallback_intrinsics = bool(rospy.get_param("~use_fallback_intrinsics", True))
+        self.has_valid_intrinsics = False
 
         self.camera_matrix = None
         self.fx = None
@@ -52,39 +59,42 @@ class DollDetectorNode(object):
 
     def camera_info_callback(self, msg):
         self.camera_matrix = np.array(msg.K, dtype=np.float64).reshape(3, 3)
-        self.fx = float(self.camera_matrix[0, 0])
-        self.fy = float(self.camera_matrix[1, 1])
-        self.cx = float(self.camera_matrix[0, 2])
-        self.cy = float(self.camera_matrix[1, 2])
         frame_id = msg.header.frame_id.strip()
         if not self.output_frame_id and frame_id:
             self.output_frame_id = frame_id
 
-    def find_largest_contour(self, mask):
+        fx = float(self.camera_matrix[0, 0])
+        fy = float(self.camera_matrix[1, 1])
+        cx = float(self.camera_matrix[0, 2])
+        cy = float(self.camera_matrix[1, 2])
+        if abs(fx) > 1e-6 and abs(fy) > 1e-6:
+            self.fx = fx
+            self.fy = fy
+            self.cx = cx
+            self.cy = cy
+            self.has_valid_intrinsics = True
+            return
+
+        if self.use_fallback_intrinsics:
+            self.fx = self.fallback_fx
+            self.fy = self.fallback_fy
+            self.cx = 0.5 * float(msg.width) if msg.width > 0 else 320.0
+            self.cy = 0.5 * float(msg.height) if msg.height > 0 else 240.0
+            self.has_valid_intrinsics = False
+            rospy.logwarn_throttle(5.0, "doll_detector camera_info invalid, using fallback intrinsics fx=%.1f fy=%.1f cx=%.1f cy=%.1f", self.fx, self.fy, self.cx, self.cy)
+
+    def find_primary_box(self, mask, min_area):
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            return max(contours, key=cv2.contourArea)
-        return None
-
-    def get_bbox_from_contour(self, contour):
-        if contour is None:
-            return None
-        x, y, w, h = cv2.boundingRect(contour)
-        return (float(x), float(y), float(w), float(h))
-
-    def boxes_are_close(self, box1, box2):
-        if box1 is None or box2 is None:
-            return False
-
-        x1, y1, w1, h1 = box1
-        x2, y2, w2, h2 = box2
-        center1_x = x1 + w1 * 0.5
-        center1_y = y1 + h1 * 0.5
-        center2_x = x2 + w2 * 0.5
-        center2_y = y2 + h2 * 0.5
-        distance = math.sqrt((center1_x - center2_x) ** 2 + (center1_y - center2_y) ** 2)
-        avg_size = (w1 + h1 + w2 + h2) * 0.25
-        return distance < (avg_size * self.max_distance_ratio)
+        best_box = None
+        best_area = 0.0
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area < min_area or area <= best_area:
+                continue
+            x, y, w, h = cv2.boundingRect(contour)
+            best_box = (float(x), float(y), float(w), float(h))
+            best_area = float(area)
+        return best_box, best_area
 
     def merge_boxes(self, box1, box2):
         if box1 is None:
@@ -99,39 +109,69 @@ class DollDetectorNode(object):
         y_max = max(y1 + h1, y2 + h2)
         return (x_min, y_min, x_max - x_min, y_max - y_min)
 
+    def box_inside(self, inner_box, outer_box):
+        if inner_box is None or outer_box is None:
+            return False
+        ix, iy, iw, ih = inner_box
+        ox, oy, ow, oh = outer_box
+        return ix >= ox and iy >= oy and (ix + iw) <= (ox + ow) and (iy + ih) <= (oy + oh)
+
     def detect_object(self, frame):
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        kernel3 = np.ones((3, 3), np.uint8)
-        kernel5 = np.ones((5, 5), np.uint8)
 
         mask_blue = cv2.inRange(hsv, self.lower_blue, self.upper_blue)
-        mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_OPEN, kernel3)
-        mask_blue = cv2.dilate(mask_blue, kernel5, iterations=2)
+        mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_OPEN, self.kernel3)
+        mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_CLOSE, self.kernel3)
+        blue_box, blue_area = self.find_primary_box(mask_blue, self.min_blue_area)
+        if blue_box is None:
+            return None, None, None, 0.0
 
-        mask_white = cv2.inRange(hsv, self.lower_white, self.upper_white)
-        mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, kernel3)
-        mask_white = cv2.dilate(mask_white, kernel5, iterations=1)
+        x, y, w, h = [int(v) for v in blue_box]
+        pad_x = max(2, int(w * self.blue_padding_ratio))
+        pad_y = max(2, int(h * self.blue_padding_ratio))
+        x0 = max(0, x - pad_x)
+        y0 = max(0, y - pad_y)
+        x1 = min(frame.shape[1], x + w + pad_x)
+        y1 = min(frame.shape[0], y + h + pad_y)
+        roi = hsv[y0:y1, x0:x1]
 
-        blue_contour = self.find_largest_contour(mask_blue)
-        white_contour = self.find_largest_contour(mask_white)
-        blue_box = self.get_bbox_from_contour(blue_contour)
-        white_box = self.get_bbox_from_contour(white_contour)
+        white_box = None
+        white_area = 0.0
+        white_ratio = 0.0
+        if roi.size > 0:
+            mask_white = cv2.inRange(roi, self.lower_white, self.upper_white)
+            mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, self.kernel3)
+            mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_CLOSE, self.kernel3)
+            local_white_box, white_area = self.find_primary_box(mask_white, self.min_white_area)
+            if local_white_box is not None:
+                wx, wy, ww, wh = local_white_box
+                white_box = (x0 + wx, y0 + wy, ww, wh)
+                white_ratio = white_area / max(float(w * h), 1.0)
 
-        blue_area = cv2.contourArea(blue_contour) if blue_contour is not None else 0.0
-        white_area = cv2.contourArea(white_contour) if white_contour is not None else 0.0
-        if blue_area < self.min_blue_area:
-            return None, blue_box, white_box, 0.0
-
-        if white_area >= self.min_white_area and self.boxes_are_close(blue_box, white_box):
+        final_box = blue_box
+        if white_box is not None and self.box_inside(white_box, (x0, y0, x1 - x0, y1 - y0)):
             final_box = self.merge_boxes(blue_box, white_box)
-        else:
-            final_box = blue_box
+            fx, fy, fw, fh = final_box
+            expand_x = max(2, int(fw * 0.08))
+            expand_y = max(2, int(fh * 0.10))
+            final_box = (
+                max(0, int(fx - expand_x)),
+                max(0, int(fy - expand_y)),
+                min(frame.shape[1] - int(max(0, fx - expand_x)), int(fw + expand_x * 2)),
+                min(frame.shape[0] - int(max(0, fy - expand_y)), int(fh + expand_y * 2)),
+            )
 
-        confidence = min(1.0, (blue_area + white_area) / max(self.min_blue_area + self.min_white_area, 1.0))
+        confidence = min(1.0, (blue_area / max(self.min_blue_area, 1.0)) * 0.7 + max(white_ratio, white_area / max(self.min_white_area, 1.0)) * 0.3)
+        if white_box is None:
+            confidence *= 0.85
         return final_box, blue_box, white_box, float(confidence)
 
     def estimate_pose(self, box):
-        if self.fx is None or self.fy is None:
+        if self.fx is None or self.fy is None or self.cx is None or self.cy is None:
+            rospy.logwarn_throttle(2.0, "doll_detector waiting for camera_info on topic: %s", self.camera_info_topic)
+            return None
+        if abs(self.fx) < 1e-6 or abs(self.fy) < 1e-6:
+            rospy.logwarn_throttle(2.0, "doll_detector waiting for valid camera intrinsics on topic: %s", self.camera_info_topic)
             return None
         x, y, w, h = box
         if w <= 1.0 or h <= 1.0:
@@ -151,21 +191,14 @@ class DollDetectorNode(object):
         pose.orientation.w = 1.0
         return pose
 
-    def draw_debug(self, frame, blue_box, white_box, final_box, confidence):
+    def draw_debug(self, frame, final_box, confidence):
+        if final_box is None:
+            return frame
         out = frame.copy()
-        if blue_box is not None:
-            x, y, w, h = [int(v) for v in blue_box]
-            cv2.rectangle(out, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            cv2.putText(out, "Blue", (x, max(0, y - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        if white_box is not None:
-            x, y, w, h = [int(v) for v in white_box]
-            cv2.rectangle(out, (x, y), (x + w, y + h), (255, 255, 0), 2)
-            cv2.putText(out, "White", (x, max(0, y - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
-        if final_box is not None:
-            x, y, w, h = [int(v) for v in final_box]
-            cv2.rectangle(out, (x, y), (x + w, y + h), (0, 0, 255), 3)
-            text = "%s %.2f" % (self.label, confidence)
-            cv2.putText(out, text, (x, max(0, y - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        x, y, w, h = [int(v) for v in final_box]
+        cv2.rectangle(out, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        text = "%s %.2f" % (self.label, confidence)
+        cv2.putText(out, text, (x, max(0, y - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
         return out
 
     def image_callback(self, msg):
@@ -176,10 +209,6 @@ class DollDetectorNode(object):
 
         frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         final_box, blue_box, white_box, confidence = self.detect_object(frame)
-
-        debug_image = None
-        if self.publish_debug_image:
-            debug_image = self.draw_debug(frame, blue_box, white_box, final_box, confidence)
 
         if final_box is not None:
             pose = self.estimate_pose(final_box)
@@ -196,8 +225,9 @@ class DollDetectorNode(object):
                 out.bbox_h = final_box[3]
                 self.detection_pub.publish(out)
 
-        if debug_image is not None:
-            debug_msg = self.bridge.cv2_to_imgmsg(debug_image, encoding="bgr8")
+        if self.publish_debug_image:
+            debug_frame = self.draw_debug(frame, final_box, confidence)
+            debug_msg = self.bridge.cv2_to_imgmsg(debug_frame, encoding="bgr8")
             debug_msg.header = msg.header
             self.debug_pub.publish(debug_msg)
 

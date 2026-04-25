@@ -5,8 +5,8 @@
 	<arg name="max_new_marker_error" default="0.03" />
 	<arg name="max_track_error" default="0.2" />
 
-	<arg name="cam_image_topic" default="/camera/depth_registered/points" />
-	<arg name="cam_info_topic" default="/camera/color/camera_info" />
+	<arg name="cam_image_topic" default="/camera/rgb/image_raw" />
+	<arg name="cam_info_topic" default="/camera/rgb/camera_info" />
 	<arg name="output_frame" default="ar_link" />
     
     <!--连接camera_link和ar_link，连接tf树 -->
