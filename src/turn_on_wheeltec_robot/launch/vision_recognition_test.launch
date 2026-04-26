@@ -20,6 +20,13 @@
   <arg name="use_undistort" default="false"/>
   <arg name="publish_debug_image" default="true"/>
 
+  <!-- qr_detector 极简提效参数：缩放 + ROI 优先 + 跨帧缓存 + 发布去重 -->
+  <arg name="qr_resize_width" default="640"/>
+  <arg name="qr_roi_margin_px" default="30"/>
+  <arg name="qr_roi_hold_frames" default="10"/>
+  <arg name="qr_cache_hold_frames" default="6"/>
+  <arg name="qr_publish_dedup_sec" default="1.0"/>
+
   <include if="$(arg start_camera)" file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch">
     <arg name="camera_mode" value="$(arg camera_mode)"/>
     <arg name="if_usb_cam" value="$(arg if_usb_cam)"/>
@@ -31,6 +38,13 @@
     <param name="detect_rate_hz" value="$(arg detect_rate_hz)"/>
     <param name="use_undistort" value="$(arg use_undistort)"/>
     <param name="publish_debug_image" value="$(arg publish_debug_image)"/>
+
+    <!-- 对应 qr_detector.py 新参数 -->
+    <param name="resize_width" value="$(arg qr_resize_width)"/>
+    <param name="roi_margin_px" value="$(arg qr_roi_margin_px)"/>
+    <param name="roi_hold_frames" value="$(arg qr_roi_hold_frames)"/>
+    <param name="cache_hold_frames" value="$(arg qr_cache_hold_frames)"/>
+    <param name="publish_dedup_sec" value="$(arg qr_publish_dedup_sec)"/>
   </node>
 
   <node if="$(arg start_doll_detector)" pkg="doll_map_annotator" type="doll_detector.py" name="doll_detector" output="screen">
