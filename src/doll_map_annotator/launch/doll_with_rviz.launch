@@ -1,7 +1,7 @@
 <launch>
   <arg name="open_rviz" default="true"/>
-  <arg name="image_topic" default="/camera/rgb/image_raw"/>
-  <arg name="camera_info_topic" default="/camera/rgb/camera_info"/>
+  <arg name="image_topic" default="/usb_cam/image_raw"/>
+  <arg name="camera_info_topic" default="/usb_cam/camera_info"/>
 
   <include file="$(find doll_map_annotator)/launch/doll_map_core.launch">
     <arg name="image_topic" value="$(arg image_topic)"/>

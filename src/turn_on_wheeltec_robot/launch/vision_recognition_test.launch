@@ -31,7 +31,6 @@
     <param name="detect_rate_hz" value="$(arg detect_rate_hz)"/>
     <param name="use_undistort" value="$(arg use_undistort)"/>
     <param name="publish_debug_image" value="$(arg publish_debug_image)"/>
-    <param name="enable_clahe" value="$(arg enable_clahe)"/>
   </node>
 
   <node if="$(arg start_doll_detector)" pkg="doll_map_annotator" type="doll_detector.py" name="doll_detector" output="screen">

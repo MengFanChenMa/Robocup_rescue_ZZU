@@ -22,7 +22,7 @@ class DollMapperNode(object):
         self.map_frame = rospy.get_param("~map_frame", "map")
         self.confirm_hits = int(rospy.get_param("~confirm_hits", 2))
         self.one_shot_mode = bool(rospy.get_param("~one_shot_mode", True))
-        self.use_latest_tf = bool(rospy.get_param("~use_latest_tf", True))
+        self.use_latest_tf = bool(rospy.get_param("~use_latest_tf", False))
         self.confidence_min = float(rospy.get_param("~confidence_min", 0.3))
         self.save_landmarks = bool(rospy.get_param("~save_landmarks", True))
         self.landmark_file = rospy.get_param("~landmark_file", os.path.expanduser("~/.ros/doll_landmarks.json"))
@@ -221,7 +221,39 @@ class DollMapperNode(object):
 
         try:
             pose_map = self._to_map_pose(msg)
-        except Exception:
+        except tf2_ros.LookupException as e:
+            rospy.logwarn_throttle(
+                2.0,
+                "doll_mapper tf lookup failed %s->%s stamp=%.6f: %s",
+                msg.header.frame_id,
+                self.map_frame,
+                msg.header.stamp.to_sec(),
+                str(e),
+            )
+            return
+        except tf2_ros.ConnectivityException as e:
+            rospy.logwarn_throttle(
+                2.0,
+                "doll_mapper tf connectivity failed %s->%s stamp=%.6f: %s",
+                msg.header.frame_id,
+                self.map_frame,
+                msg.header.stamp.to_sec(),
+                str(e),
+            )
+            return
+        except tf2_ros.ExtrapolationException as e:
+            rospy.logwarn_throttle(
+                2.0,
+                "doll_mapper tf extrapolation failed %s->%s stamp=%.6f use_latest_tf=%s: %s",
+                msg.header.frame_id,
+                self.map_frame,
+                msg.header.stamp.to_sec(),
+                str(self.use_latest_tf),
+                str(e),
+            )
+            return
+        except Exception as e:
+            rospy.logwarn_throttle(2.0, "doll_mapper transform failed: %s", str(e))
             return
 
         self._add_landmark(key, label, pose_map)
