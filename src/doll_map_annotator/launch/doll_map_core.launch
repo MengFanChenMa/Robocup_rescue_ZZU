@@ -10,7 +10,10 @@
   <arg name="target_width_m" default="0.10"/>
   <arg name="target_height_m" default="0.16"/>
   <arg name="confirm_hits" default="2"/>
-  <arg name="one_shot_mode" default="true"/>
+  <arg name="one_shot_mode" default="false"/>
+  <arg name="use_latest_tf" default="true"/>
+  <arg name="confidence_min" default="0.2"/>
+  <arg name="cluster_radius_m" default="1.5"/>
   <arg name="save_landmarks" default="true"/>
   <arg name="landmark_file" default="$(env HOME)/.ros/doll_landmarks.json"/>
 
@@ -30,6 +33,9 @@
     <param name="map_frame" value="$(arg map_frame)"/>
     <param name="confirm_hits" value="$(arg confirm_hits)"/>
     <param name="one_shot_mode" value="$(arg one_shot_mode)"/>
+    <param name="use_latest_tf" value="$(arg use_latest_tf)"/>
+    <param name="confidence_min" value="$(arg confidence_min)"/>
+    <param name="cluster_radius_m" value="$(arg cluster_radius_m)"/>
     <param name="save_landmarks" value="$(arg save_landmarks)"/>
     <param name="landmark_file" value="$(arg landmark_file)"/>
     <param name="detections_topic" value="/doll_detector/detections"/>

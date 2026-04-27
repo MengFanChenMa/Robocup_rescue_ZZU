@@ -24,6 +24,7 @@ class DollMapperNode(object):
         self.one_shot_mode = bool(rospy.get_param("~one_shot_mode", True))
         self.use_latest_tf = bool(rospy.get_param("~use_latest_tf", False))
         self.confidence_min = float(rospy.get_param("~confidence_min", 0.3))
+        self.cluster_radius_m = float(rospy.get_param("~cluster_radius_m", 1.5))
         self.save_landmarks = bool(rospy.get_param("~save_landmarks", True))
         self.landmark_file = rospy.get_param("~landmark_file", os.path.expanduser("~/.ros/doll_landmarks.json"))
         self.detections_topic = rospy.get_param("~detections_topic", "/doll_detector/detections")
@@ -173,13 +174,14 @@ class DollMapperNode(object):
             pose_msg.header.stamp = rospy.Time(0)
         return self.tf_buffer.transform(pose_msg, self.map_frame, rospy.Duration(0.3))
 
-    def _landmark_key(self, msg):
-        # one_shot_mode=True 时，按标签只保留一个点；False 时按标签+粗略网格聚类。
+    def _landmark_key(self, label, pose_map):
+        # one_shot_mode=True 时，按标签只保留一个点；False 时按地图坐标网格聚类。
         if self.one_shot_mode:
-            return msg.label.strip()
-        gx = int(round(msg.pose.position.x / 0.3))
-        gy = int(round(msg.pose.position.y / 0.3))
-        return "%s_%d_%d" % (msg.label.strip(), gx, gy)
+            return label.strip()
+        grid = max(0.05, self.cluster_radius_m)
+        gx = int(round(pose_map.pose.position.x / grid))
+        gy = int(round(pose_map.pose.position.y / grid))
+        return "%s_%d_%d" % (label.strip(), gx, gy)
 
     def _add_landmark(self, key, label, pose_map):
         current = self.landmarks.get(key)
@@ -208,15 +210,6 @@ class DollMapperNode(object):
         if not label:
             return
         if msg.confidence < self.confidence_min:
-            return
-
-        key = self._landmark_key(msg)
-        if self.one_shot_mode and key in self.landmarks:
-            return
-
-        hit_count = self.pending_hits.get(key, 0) + 1
-        self.pending_hits[key] = hit_count
-        if hit_count < self.confirm_hits:
             return
 
         try:
@@ -255,6 +248,16 @@ class DollMapperNode(object):
         except Exception as e:
             rospy.logwarn_throttle(2.0, "doll_mapper transform failed: %s", str(e))
             return
+
+        key = self._landmark_key(label, pose_map)
+        if self.one_shot_mode and key in self.landmarks:
+            return
+
+        hit_count = self.pending_hits.get(key, 0) + 1
+        self.pending_hits[key] = hit_count
+        if hit_count < self.confirm_hits:
+            return
+
 
         self._add_landmark(key, label, pose_map)
         self.pending_hits.pop(key, None)

@@ -5,6 +5,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Map1
+        - /QrDebugImage1
+        - /DollDebugImage1
         - /Footprint1
         - /GlobalPlan1
         - /LocalPlan1
@@ -52,11 +54,23 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /camera/rgb/recognition_image
+      Image Topic: /qr_detector/debug_image
       Max Value: 1
       Median window: 5
       Min Value: 0
-      Name: CameraImage
+      Name: QrDebugImage
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /doll_detector/debug_image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: DollDebugImage
       Normalize Range: true
       Queue Size: 2
       Transport Hint: raw

@@ -17,7 +17,8 @@
   <node pkg="rrt_exploration" type="local_rrt_detector" name="local_detector" output="screen">
   <param name="eta" value="$(arg eta)"/>
   <param name="map_topic" value="/map"/>
-  <param name="robot_frame" value="base_link"/>
+  <!-- 统一使用底盘主TF坐标，避免base_link在部分车型下不存在导致local_rrt_detector异常 -->
+  <param name="robot_frame" value="base_footprint"/>
   </node>
  
   

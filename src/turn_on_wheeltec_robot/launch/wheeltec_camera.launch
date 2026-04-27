@@ -34,9 +34,13 @@
             <param name="image_width" value="640" />
             <param name="image_height" value="480" />
             <param name="pixel_format" value="yuyv" />
-            <param name="camera_frame_id" value="usb_cam" />
+            <!-- 与 robot_model_visualization.launch 中 TF 保持一致，避免 usb_cam->map 变换失败 -->
+            <param name="camera_frame_id" value="camera_link" />
             <param name="camera_name" value="head_camera"/>
             <param name="camera_info_url" value="file://$(find usb_cam)/config/head_camera.yaml"/>
+            <!-- 相机倒装补偿：上下+左右翻转 = 旋转180度 -->
+            <param name="flip_vertical" value="true"/>
+            <param name="flip_horizontal" value="true"/>
             <param name="io_method" value="mmap"/>
             <remap from="image_raw" to="/camera/rgb/image_raw"/>
             <remap from="camera_info" to="/camera/rgb/camera_info"/>
