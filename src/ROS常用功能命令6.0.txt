@@ -217,3 +217,7 @@ rosrun rqt_tf_tree rqt_tf_tree
 
 vnc调整分辨率
 xrandr --fb 1024x768
+
+roslaunch turn_on_wheeltec_robot auto_2d_mapping.launch qr_detector_mode:=a4_like
+
+

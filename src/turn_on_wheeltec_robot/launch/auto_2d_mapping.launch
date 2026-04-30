@@ -37,12 +37,14 @@
   <arg name="use_undistort" default="false"/>
   <arg name="start_qr_annotator" default="true"/>
   <arg name="start_doll_annotator" default="true"/>
+  <arg name="qr_detector_mode" default="qrcode" doc="opt: qrcode,a4_like"/>
 
   <!-- [auto2d-v0.2.0][2026-04-22] 标注落盘与导图参数 -->
   <arg name="map_output_dir" default="$(find turn_on_wheeltec_robot)/map/auto2d_exports"/>
   <arg name="map_name_prefix" default="auto2d_map"/>
-  <arg name="qr_landmark_file" default="$(arg map_output_dir)/qr_landmarks.json"/>
-  <arg name="doll_landmark_file" default="$(arg map_output_dir)/doll_landmarks.json"/>
+  <arg name="landmark_stamp" default="$(optenv AUTO2D_STAMP session)" doc="通过环境变量AUTO2D_STAMP传入时间戳，避免复用旧landmark"/>
+  <arg name="qr_landmark_file" default="$(arg map_output_dir)/qr_landmarks_$(arg landmark_stamp).json"/>
+  <arg name="doll_landmark_file" default="$(arg map_output_dir)/doll_landmarks_$(arg landmark_stamp).json"/>
   <arg name="map_topic" default="map"/>
 
   <!-- [auto2d-v0.1.0][2026-04-14] 复用现有建图+探索主链路 -->
@@ -65,6 +67,7 @@
       <arg name="image_topic" value="$(arg image_topic)"/>
       <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
       <arg name="use_undistort" value="$(arg use_undistort)"/>
+      <arg name="detector_mode" value="$(arg qr_detector_mode)"/>
       <arg name="map_frame" value="$(arg frame_id)"/>
       <arg name="landmark_file" value="$(arg qr_landmark_file)"/>
     </include>
@@ -110,6 +113,9 @@
     <param name="doll_landmark_file" value="$(arg doll_landmark_file)"/>
     <param name="qr_color_bgr" value="[0, 0, 255]"/>
     <param name="doll_color_bgr" value="[255, 0, 0]"/>
+    <param name="circle_radius_px" value="5"/>
+    <param name="circle_thickness_px" value="-1"/>
+    <param name="export_scale" value="4"/>
     <param name="trigger_on_shutdown" value="true"/>
   </node>
 

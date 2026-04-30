@@ -7,6 +7,7 @@ import datetime
 import json
 import os
 import subprocess
+import ast
 
 import cv2
 import numpy as np
@@ -29,13 +30,14 @@ class AnnotatedMapExporter(object):
         self.qr_landmark_file = rospy.get_param("~qr_landmark_file", os.path.expanduser("~/.ros/qr_landmarks.json"))
         self.doll_landmark_file = rospy.get_param("~doll_landmark_file", os.path.expanduser("~/.ros/doll_landmarks.json"))
 
-        self.qr_color_bgr = tuple(rospy.get_param("~qr_color_bgr", [0, 0, 255]))      # 红色
-        self.doll_color_bgr = tuple(rospy.get_param("~doll_color_bgr", [255, 0, 0]))  # 蓝色
+        self.qr_color_bgr = self._parse_bgr_param(rospy.get_param("~qr_color_bgr", [0, 0, 255]), (0, 0, 255))      # 红色
+        self.doll_color_bgr = self._parse_bgr_param(rospy.get_param("~doll_color_bgr", [255, 0, 0]), (255, 0, 0))  # 蓝色
 
         self.circle_radius = int(rospy.get_param("~circle_radius_px", 8))
         self.circle_thickness = int(rospy.get_param("~circle_thickness_px", 2))
         self.text_scale = float(rospy.get_param("~text_scale", 0.5))
         self.text_thickness = int(rospy.get_param("~text_thickness", 1))
+        self.export_scale = int(rospy.get_param("~export_scale", 1))
         self.trigger_on_shutdown = bool(rospy.get_param("~trigger_on_shutdown", True))
         self.occupied_thresh = float(rospy.get_param("~occupied_thresh", 0.65))
         self.free_thresh = float(rospy.get_param("~free_thresh", 0.196))
@@ -51,6 +53,25 @@ class AnnotatedMapExporter(object):
     def _ensure_dir(self, path):
         if not os.path.exists(path):
             os.makedirs(path)
+
+    def _parse_bgr_param(self, value, default):
+        """兼容 rosparam 传入 list 或字符串 "[b,g,r]"。"""
+        try:
+            parsed = value
+            if isinstance(value, basestring):
+                parsed = ast.literal_eval(value)
+            if isinstance(parsed, (list, tuple)) and len(parsed) >= 3:
+                b = int(parsed[0])
+                g = int(parsed[1])
+                r = int(parsed[2])
+                b = max(0, min(255, b))
+                g = max(0, min(255, g))
+                r = max(0, min(255, r))
+                return (b, g, r)
+        except Exception:
+            pass
+        rospy.logwarn("[annotated_map_exporter] invalid color param=%s, fallback to default=%s", str(value), str(default))
+        return tuple(default)
 
     def _map_callback(self, msg):
         self._current_map = msg
@@ -156,8 +177,9 @@ class AnnotatedMapExporter(object):
         out = []
         for key, item in data.items():
             try:
+                label = str(fallback_label) if fallback_label else str(item.get("label", key))
                 out.append({
-                    "label": str(item.get("label", fallback_label if fallback_label else key)),
+                    "label": label,
                     "x": float(item["x"]),
                     "y": float(item["y"]),
                 })
@@ -236,10 +258,10 @@ class AnnotatedMapExporter(object):
     def save_all(self):
         if self._saved_once:
             return
-        self._saved_once = True
 
         self._ensure_dir(self.output_dir)
-        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # 按“月日_时分秒”命名，示例：0427_153045
+        stamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
         base_path = os.path.join(self.output_dir, "%s_%s" % (self.map_name_prefix, stamp))
         yaml_path = base_path + ".yaml"
 
@@ -285,12 +307,34 @@ class AnnotatedMapExporter(object):
         cv2.putText(image_bgr, time_text, (12, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (30, 30, 30), 3)
         cv2.putText(image_bgr, time_text, (12, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
+        export_image = image_bgr
+        export_resolution = resolution
+        if self.export_scale > 1:
+            h, w = image_bgr.shape[:2]
+            export_image = cv2.resize(
+                image_bgr,
+                (w * self.export_scale, h * self.export_scale),
+                interpolation=cv2.INTER_NEAREST,
+            )
+            export_resolution = resolution / float(self.export_scale)
+            rospy.loginfo(
+                "[annotated_map_exporter] export upscaled by x%d (nearest), resolution %.6f -> %.6f",
+                self.export_scale,
+                resolution,
+                export_resolution,
+            )
+
         annotated_png = base_path + "_annotated.png"
-        cv2.imwrite(annotated_png, image_bgr)
+        if not cv2.imwrite(annotated_png, export_image):
+            rospy.logerr("[annotated_map_exporter] write annotated png failed: %s", annotated_png)
+            return
 
         geotiff_path = base_path + "_annotated.tif"
-        self._export_geotiff(image_bgr, geotiff_path, origin_x, origin_y, resolution)
+        if not self._export_geotiff(export_image, geotiff_path, origin_x, origin_y, export_resolution):
+            rospy.logerr("[annotated_map_exporter] export geotiff failed: %s", geotiff_path)
+            return
 
+        self._saved_once = True
         rospy.loginfo("[annotated_map_exporter] done. base=%s", base_path)
         rospy.loginfo("[annotated_map_exporter] QR landmarks=%d, Doll landmarks=%d", len(qr_landmarks), len(doll_landmarks))
 

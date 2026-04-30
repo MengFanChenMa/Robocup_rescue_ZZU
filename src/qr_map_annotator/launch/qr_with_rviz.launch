@@ -3,11 +3,13 @@
   <arg name="image_topic" default="/camera/rgb/image_raw"/>
   <arg name="camera_info_topic" default="/camera/rgb/camera_info"/>
   <arg name="use_undistort" default="false"/>
+  <arg name="detector_mode" default="qrcode" doc="opt: qrcode,a4_like"/>
 
   <include file="$(find qr_map_annotator)/launch/qr_map_core.launch">
     <arg name="image_topic" value="$(arg image_topic)"/>
     <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
     <arg name="use_undistort" value="$(arg use_undistort)"/>
+    <arg name="detector_mode" value="$(arg detector_mode)"/>
   </include>
 
   <node if="$(arg open_rviz)" pkg="rviz" type="rviz" name="rviz_qr_map" args="-d $(find qr_map_annotator)/rviz/qr_map.rviz"/>

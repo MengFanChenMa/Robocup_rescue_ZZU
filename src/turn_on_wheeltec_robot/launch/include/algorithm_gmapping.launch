@@ -34,8 +34,8 @@
     <param name="xmax" value="10.0"/>
     <param name="ymax" value="10.0"/>
 
-    <!-- [auto2d-v0.1.2][2026-04-14] TX2性能优化：降低栅格分辨率（5cm -> 8cm） -->
-    <param name="delta" value="0.08"/>
+    <!-- [auto2d-v0.2.4][2026-04-28] 提升地图清晰度：恢复栅格分辨率到5cm -->
+    <param name="delta" value="0.05"/>
     <param name="llsamplerange" value="0.01"/>
     <param name="llsamplestep" value="0.01"/>
     <param name="lasamplerange" value="0.005"/>

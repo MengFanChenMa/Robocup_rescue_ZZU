@@ -22,8 +22,8 @@ class DollDetectorNode(object):
         self.label = rospy.get_param("~label", "doll")
         self.output_frame_id = rospy.get_param("~output_frame_id", "")
 
-        self.lower_blue = np.array(rospy.get_param("~lower_blue", [95, 70, 60]), dtype=np.uint8)
-        self.upper_blue = np.array(rospy.get_param("~upper_blue", [130, 255, 255]), dtype=np.uint8)
+        self.lower_blue = np.array(rospy.get_param("~lower_blue", [100, 90, 70]), dtype=np.uint8)
+        self.upper_blue = np.array(rospy.get_param("~upper_blue", [124, 255, 255]), dtype=np.uint8)
         self.lower_white = np.array(rospy.get_param("~lower_white", [0, 0, 175]), dtype=np.uint8)
         self.upper_white = np.array(rospy.get_param("~upper_white", [180, 70, 255]), dtype=np.uint8)
 
