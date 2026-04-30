@@ -34,6 +34,7 @@ catkin_install_python(PROGRAMS
   scripts/annotated_map_exporter.py
   scripts/node_ping.py
   scripts/send_mark.py
+  scripts/vision_threshold_tuner.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
