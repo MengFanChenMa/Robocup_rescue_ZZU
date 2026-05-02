@@ -73,9 +73,15 @@ class QrDetectorNode(object):
         self.publish_debug_image = bool(rospy.get_param("~publish_debug_image", False))
         self.output_frame_id = rospy.get_param("~output_frame_id", "")
 
+        # Color preprocessing (for warm/yellow lighting robustness)
+        self.enable_color_preprocess = bool(rospy.get_param("~enable_color_preprocess", True))
+        self.enable_clahe = bool(rospy.get_param("~enable_clahe", False))
+        self.clahe_clip_limit = float(rospy.get_param("~clahe_clip_limit", 2.0))
+        self.clahe_tile_size = int(rospy.get_param("~clahe_tile_size", 8))
+
         # A4-like detector params (white sheet + small black region)
-        self.a4_width_m = float(rospy.get_param("~a4_width_m", 0.210))
-        self.a4_height_m = float(rospy.get_param("~a4_height_m", 0.297))
+        self.a4_width_m = float(rospy.get_param("~a4_width_m", 0.209))
+        self.a4_height_m = float(rospy.get_param("~a4_height_m", 0.145))
         self.a4_label = rospy.get_param("~a4_label", "qr_like")
         # OpenCV LAB range:
         # L: 0~255 (mapped from 0~100), a/b: 0~255 (mapped from -128~127 by +128)
@@ -87,10 +93,23 @@ class QrDetectorNode(object):
         self.a4_lab_upper_a = int(rospy.get_param("~a4_lab_upper_a", 134))
         self.a4_lab_upper_b = int(rospy.get_param("~a4_lab_upper_b", 139))
         self.a4_min_white_area = float(rospy.get_param("~a4_min_white_area", 2500.0))
-        self.a4_min_black_ratio = float(rospy.get_param("~a4_min_black_ratio", 0.005))
-        self.a4_max_black_ratio = float(rospy.get_param("~a4_max_black_ratio", 0.25))
+        self.a4_min_black_ratio = float(rospy.get_param("~a4_min_black_ratio", 0.10))
+        self.a4_max_black_ratio = float(rospy.get_param("~a4_max_black_ratio", 0.55))
         self.a4_min_aspect = float(rospy.get_param("~a4_min_aspect", 0.5))
         self.a4_max_aspect = float(rospy.get_param("~a4_max_aspect", 1.8))
+        self.a4_min_rectangularity = float(rospy.get_param("~a4_min_rectangularity", 0.65))
+        self.a4_min_black_components = int(rospy.get_param("~a4_min_black_components", 6))
+
+        # Lab+HSV white mask params for warm lighting robustness
+        self.a4_white_ref_l_min = int(rospy.get_param("~a4_white_ref_l_min", 185))
+        self.a4_white_ref_s_max = int(rospy.get_param("~a4_white_ref_s_max", 75))
+        self.a4_white_ref_min_pixels = int(rospy.get_param("~a4_white_ref_min_pixels", 300))
+        self.a4_l_min = int(rospy.get_param("~a4_l_min", 175))
+        self.a4_c_max = float(rospy.get_param("~a4_c_max", 34.0))
+        self.a4_s_max = int(rospy.get_param("~a4_s_max", 95))
+        self.a4_v_min = int(rospy.get_param("~a4_v_min", 120))
+        self.a4_close_kernel = int(rospy.get_param("~a4_close_kernel", 9))
+        self.a4_open_kernel = int(rospy.get_param("~a4_open_kernel", 3))
 
         self.period = 1.0 / max(self.detect_rate_hz, 1.0)
         self.last_process = rospy.Time(0)
@@ -158,6 +177,34 @@ class QrDetectorNode(object):
         )
         return self._clamp_roi(roi, width, height)
 
+    def preprocess_frame(self, frame):
+        # 1) Gray-world white balance: suppress warm/yellow cast by balancing B/G/R means.
+        wb = frame.astype(np.float32)
+        mean_b = float(np.mean(wb[:, :, 0]))
+        mean_g = float(np.mean(wb[:, :, 1]))
+        mean_r = float(np.mean(wb[:, :, 2]))
+        mean_gray = max((mean_b + mean_g + mean_r) / 3.0, 1.0)
+
+        gain_b = mean_gray / max(mean_b, 1.0)
+        gain_g = mean_gray / max(mean_g, 1.0)
+        gain_r = mean_gray / max(mean_r, 1.0)
+
+        wb[:, :, 0] = np.clip(wb[:, :, 0] * gain_b, 0, 255)
+        wb[:, :, 1] = np.clip(wb[:, :, 1] * gain_g, 0, 255)
+        wb[:, :, 2] = np.clip(wb[:, :, 2] * gain_r, 0, 255)
+        out = wb.astype(np.uint8)
+
+        # 2) Optional local contrast enhancement on luminance channel.
+        if self.enable_clahe:
+            lab = cv2.cvtColor(out, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            tile = max(2, int(self.clahe_tile_size))
+            clahe = cv2.createCLAHE(clipLimit=max(0.5, self.clahe_clip_limit), tileGridSize=(tile, tile))
+            l = clahe.apply(l)
+            out = cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2BGR)
+
+        return out
+
     def _detect_candidates_qrcode(self, gray):
         points_list = []
         if hasattr(self.detector, "detectMulti"):
@@ -199,20 +246,36 @@ class QrDetectorNode(object):
 
     def _detect_candidates_a4_like(self, bgr):
         lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
         gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
 
-        # white paper mask in LAB
-        lower_white = np.array(
-            [self.a4_lab_lower_l, self.a4_lab_lower_a, self.a4_lab_lower_b],
-            dtype=np.uint8,
-        )
-        upper_white = np.array(
-            [self.a4_lab_upper_l, self.a4_lab_upper_a, self.a4_lab_upper_b],
-            dtype=np.uint8,
-        )
-        mask_white = cv2.inRange(lab, lower_white, upper_white)
-        mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, self.kernel3)
-        mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_CLOSE, self.kernel3)
+        l = lab[:, :, 0].astype(np.float32)
+        a = lab[:, :, 1].astype(np.float32)
+        b = lab[:, :, 2].astype(np.float32)
+        s = hsv[:, :, 1]
+        v = hsv[:, :, 2]
+
+        # Estimate current white-point in warm light: use bright + low-sat pixels.
+        white_ref = np.logical_and(l > float(self.a4_white_ref_l_min), s < self.a4_white_ref_s_max)
+        if np.count_nonzero(white_ref) >= self.a4_white_ref_min_pixels:
+            a0 = float(np.mean(a[white_ref]))
+            b0 = float(np.mean(b[white_ref]))
+        else:
+            a0, b0 = 128.0, 128.0
+
+        # Lab for luminance/chromatic distance to white; HSV assists suppressing wood/warm highlights.
+        c_warm = np.sqrt((a - a0) ** 2 + (b - b0) ** 2)
+        mask_lab = np.logical_and(l > float(self.a4_l_min), c_warm < self.a4_c_max)
+        mask_hsv = np.logical_and(s < self.a4_s_max, v > self.a4_v_min)
+        mask_white = np.logical_and(mask_lab, mask_hsv).astype(np.uint8) * 255
+
+        # Closing reconnects white paper split by black QR modules; opening removes tiny noise.
+        close_k = max(1, int(self.a4_close_kernel))
+        open_k = max(1, int(self.a4_open_kernel))
+        kernel_close = np.ones((close_k, close_k), np.uint8)
+        kernel_open = np.ones((open_k, open_k), np.uint8)
+        mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_CLOSE, kernel_close)
+        mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, kernel_open)
 
         contours = self._find_contours(mask_white)
         out = []
@@ -236,13 +299,41 @@ class QrDetectorNode(object):
             if aspect < self.a4_min_aspect or aspect > self.a4_max_aspect:
                 continue
 
-            # check dark ratio inside the white block (grayscale)
-            roi_gray = gray[y:y + h, x:x + w]
-            if roi_gray.size == 0:
+            rect_area = float(w * h)
+            rectangularity = float(area) / max(rect_area, 1.0)
+            if rectangularity < self.a4_min_rectangularity:
                 continue
-            _, black_mask = cv2.threshold(roi_gray, 80, 255, cv2.THRESH_BINARY_INV)
-            black_ratio = float(np.count_nonzero(black_mask)) / float(w * h)
+
+            # Verify QR-like candidate by black ratio and black texture components inside white region.
+            roi_gray = gray[y:y + h, x:x + w]
+            roi_white = mask_white[y:y + h, x:x + w]
+            if roi_gray.size == 0 or roi_white.size == 0:
+                continue
+
+            black_mask = cv2.adaptiveThreshold(
+                roi_gray,
+                255,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY_INV,
+                31,
+                7,
+            )
+            black_mask = cv2.bitwise_and(black_mask, black_mask, mask=roi_white)
+
+            white_pixels = float(np.count_nonzero(roi_white))
+            if white_pixels < 1.0:
+                continue
+            black_ratio = float(np.count_nonzero(black_mask)) / white_pixels
             if black_ratio < self.a4_min_black_ratio or black_ratio > self.a4_max_black_ratio:
+                continue
+
+            num_labels, _, stats, _ = cv2.connectedComponentsWithStats(black_mask, connectivity=8)
+            black_components = 0
+            for i in range(1, num_labels):
+                comp_area = int(stats[i, cv2.CC_STAT_AREA])
+                if comp_area >= 6:
+                    black_components += 1
+            if black_components < self.a4_min_black_components:
                 continue
 
             out.append(quad)
@@ -383,7 +474,8 @@ class QrDetectorNode(object):
             camera_matrix = self.new_camera_matrix
             dist_coeffs = np.zeros((5, 1), dtype=np.float64)
 
-        bgr_small, scale = self._resize_image(cv_image)
+        bgr_base = self.preprocess_frame(cv_image) if self.enable_color_preprocess else cv_image
+        bgr_small, scale = self._resize_image(bgr_base)
         gray_small = cv2.cvtColor(bgr_small, cv2.COLOR_BGR2GRAY)
         small_h, small_w = gray_small.shape[:2]
 

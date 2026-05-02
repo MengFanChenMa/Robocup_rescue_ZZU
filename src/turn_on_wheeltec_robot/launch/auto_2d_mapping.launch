@@ -37,7 +37,7 @@
   <arg name="use_undistort" default="false"/>
   <arg name="start_qr_annotator" default="true"/>
   <arg name="start_doll_annotator" default="true"/>
-  <arg name="qr_detector_mode" default="qrcode" doc="opt: qrcode,a4_like"/>
+  <arg name="qr_detector_mode" default="a4_like" doc="opt: qrcode,a4_like"/>
 
   <!-- [auto2d-v0.2.0][2026-04-22] 标注落盘与导图参数 -->
   <arg name="map_output_dir" default="$(find turn_on_wheeltec_robot)/map/auto2d_exports"/>

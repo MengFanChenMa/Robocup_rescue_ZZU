@@ -50,6 +50,9 @@ TebLocalPlannerROS:
   weight_dynamic_obstacle: 10 
   weight_dynamic_obstacle_inflation: 0.2
   weight_viapoint: 1
+  #旋转方向偏好权重（>0 开启方向偏好；数值越大偏好越强）
+  #注意：偏好“右转/左转”由内部方向标志决定，通常与恢复阶段触发有关
+  weight_prefer_rotdir: 30
   weight_adapt_factor: 2
 
   #不同拓扑中的并行规划

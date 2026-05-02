@@ -4,24 +4,27 @@
   <arg name="start_usb_cam" default="true"/>
   <arg name="start_mapper" default="true"/>
   <arg name="map_frame" default="map"/>
-  <arg name="detector_mode" default="qrcode" doc="opt: qrcode,a4_like"/>
+  <arg name="detector_mode" default="a4_like" doc="opt: qrcode,a4_like"/>
   <arg name="qr_size_m" default="0.168"/>
   <arg name="detect_rate_hz" default="10.0"/>
   <arg name="use_undistort" default="false"/>
   <arg name="publish_debug_image" default="true"/>
 
-  <!-- a4_like 模式参数（白色A4 + 少量黑色） -->
+  <!-- A4-like params -->
   <arg name="a4_width_m" default="0.210"/>
   <arg name="a4_height_m" default="0.297"/>
   <arg name="a4_label" default="qr_like"/>
-  <arg name="a4_white_v_min" default="175"/>
-  <arg name="a4_white_s_max" default="70"/>
-  <arg name="a4_black_v_max" default="80"/>
-  <arg name="a4_min_white_area" default="2500.0"/>
-  <arg name="a4_min_black_ratio" default="0.005"/>
-  <arg name="a4_max_black_ratio" default="0.25"/>
-  <arg name="a4_min_aspect" default="0.5"/>
-  <arg name="a4_max_aspect" default="1.8"/>
+  <arg name="a4_lab_lower_l" default="145"/>
+  <arg name="a4_lab_lower_a" default="118"/>
+  <arg name="a4_lab_lower_b" default="126"/>
+  <arg name="a4_lab_upper_l" default="245"/>
+  <arg name="a4_lab_upper_a" default="150"/>
+  <arg name="a4_lab_upper_b" default="176"/>
+  <arg name="a4_min_white_area" default="1800"/>
+  <arg name="a4_min_black_ratio" default="0.003"/>
+  <arg name="a4_max_black_ratio" default="0.30"/>
+  <arg name="a4_min_aspect" default="0.45"/>
+  <arg name="a4_max_aspect" default="2.00"/>
   <arg name="confirm_hits" default="2"/>
   <arg name="one_shot_mode" default="true"/>
   <arg name="save_landmarks" default="true"/>
@@ -41,9 +44,12 @@
     <param name="a4_width_m" value="$(arg a4_width_m)"/>
     <param name="a4_height_m" value="$(arg a4_height_m)"/>
     <param name="a4_label" value="$(arg a4_label)"/>
-    <param name="a4_white_v_min" value="$(arg a4_white_v_min)"/>
-    <param name="a4_white_s_max" value="$(arg a4_white_s_max)"/>
-    <param name="a4_black_v_max" value="$(arg a4_black_v_max)"/>
+    <param name="a4_lab_lower_l" value="$(arg a4_lab_lower_l)"/>
+    <param name="a4_lab_lower_a" value="$(arg a4_lab_lower_a)"/>
+    <param name="a4_lab_lower_b" value="$(arg a4_lab_lower_b)"/>
+    <param name="a4_lab_upper_l" value="$(arg a4_lab_upper_l)"/>
+    <param name="a4_lab_upper_a" value="$(arg a4_lab_upper_a)"/>
+    <param name="a4_lab_upper_b" value="$(arg a4_lab_upper_b)"/>
     <param name="a4_min_white_area" value="$(arg a4_min_white_area)"/>
     <param name="a4_min_black_ratio" value="$(arg a4_min_black_ratio)"/>
     <param name="a4_max_black_ratio" value="$(arg a4_max_black_ratio)"/>

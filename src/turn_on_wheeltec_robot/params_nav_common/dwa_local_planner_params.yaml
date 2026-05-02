@@ -46,5 +46,8 @@ DWAPlannerROS:
   publish_cost_grid_pc: true #将代价值进行可视化显示
   global_frame_id: map       #全局参考坐标系
 
+  #向右规划偏好参数（>0时更偏好右转轨迹；0为关闭）
+  right_turn_bias: 0.8
+
   #是否将走过的路径从路径规划中清除
   prune_plan: true

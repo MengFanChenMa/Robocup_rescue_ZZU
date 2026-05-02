@@ -47,24 +47,45 @@ class VisionThresholdTuner(object):
         cv2.resizeWindow(self.ctrl_window, 720, 900)
 
         if self.profile == "doll":
-            cv2.createTrackbar("BH_min", self.ctrl_window, int(rospy.get_param("~lower_blue_h", 100)), 180, lambda x: None)
-            cv2.createTrackbar("BS_min", self.ctrl_window, int(rospy.get_param("~lower_blue_s", 90)), 255, lambda x: None)
-            cv2.createTrackbar("BV_min", self.ctrl_window, int(rospy.get_param("~lower_blue_v", 70)), 255, lambda x: None)
-            cv2.createTrackbar("BH_max", self.ctrl_window, int(rospy.get_param("~upper_blue_h", 124)), 180, lambda x: None)
-            cv2.createTrackbar("BS_max", self.ctrl_window, int(rospy.get_param("~upper_blue_s", 255)), 255, lambda x: None)
-            cv2.createTrackbar("BV_max", self.ctrl_window, int(rospy.get_param("~upper_blue_v", 255)), 255, lambda x: None)
+            lower_blue = rospy.get_param("~lower_blue", [
+                int(rospy.get_param("~lower_blue_h", 98)),
+                int(rospy.get_param("~lower_blue_s", 95)),
+                int(rospy.get_param("~lower_blue_v", 72)),
+            ])
+            upper_blue = rospy.get_param("~upper_blue", [
+                int(rospy.get_param("~upper_blue_h", 128)),
+                int(rospy.get_param("~upper_blue_s", 255)),
+                int(rospy.get_param("~upper_blue_v", 255)),
+            ])
+            lower_white = rospy.get_param("~lower_white", [
+                int(rospy.get_param("~lower_white_h", 0)),
+                int(rospy.get_param("~lower_white_s", 0)),
+                int(rospy.get_param("~lower_white_v", 205)),
+            ])
+            upper_white = rospy.get_param("~upper_white", [
+                int(rospy.get_param("~upper_white_h", 180)),
+                int(rospy.get_param("~upper_white_s", 45)),
+                int(rospy.get_param("~upper_white_v", 255)),
+            ])
 
-            cv2.createTrackbar("WH_min", self.ctrl_window, int(rospy.get_param("~lower_white_h", 0)), 180, lambda x: None)
-            cv2.createTrackbar("WS_min", self.ctrl_window, int(rospy.get_param("~lower_white_s", 0)), 255, lambda x: None)
-            cv2.createTrackbar("WV_min", self.ctrl_window, int(rospy.get_param("~lower_white_v", 175)), 255, lambda x: None)
-            cv2.createTrackbar("WH_max", self.ctrl_window, int(rospy.get_param("~upper_white_h", 180)), 180, lambda x: None)
-            cv2.createTrackbar("WS_max", self.ctrl_window, int(rospy.get_param("~upper_white_s", 70)), 255, lambda x: None)
-            cv2.createTrackbar("WV_max", self.ctrl_window, int(rospy.get_param("~upper_white_v", 255)), 255, lambda x: None)
+            cv2.createTrackbar("BH_min", self.ctrl_window, int(lower_blue[0]), 180, lambda x: None)
+            cv2.createTrackbar("BS_min", self.ctrl_window, int(lower_blue[1]), 255, lambda x: None)
+            cv2.createTrackbar("BV_min", self.ctrl_window, int(lower_blue[2]), 255, lambda x: None)
+            cv2.createTrackbar("BH_max", self.ctrl_window, int(upper_blue[0]), 180, lambda x: None)
+            cv2.createTrackbar("BS_max", self.ctrl_window, int(upper_blue[1]), 255, lambda x: None)
+            cv2.createTrackbar("BV_max", self.ctrl_window, int(upper_blue[2]), 255, lambda x: None)
 
-            cv2.createTrackbar("min_blue_area", self.ctrl_window, int(rospy.get_param("~min_blue_area", 700)), 20000, lambda x: None)
-            cv2.createTrackbar("min_white_area", self.ctrl_window, int(rospy.get_param("~min_white_area", 180)), 8000, lambda x: None)
-            cv2.createTrackbar("min_white_ratio_x1000", self.ctrl_window, int(rospy.get_param("~min_white_ratio_x1000", 10)), 300, lambda x: None)
-            cv2.createTrackbar("blue_pad_x100", self.ctrl_window, int(rospy.get_param("~blue_padding_ratio_x100", 18)), 100, lambda x: None)
+            cv2.createTrackbar("WH_min", self.ctrl_window, int(lower_white[0]), 180, lambda x: None)
+            cv2.createTrackbar("WS_min", self.ctrl_window, int(lower_white[1]), 255, lambda x: None)
+            cv2.createTrackbar("WV_min", self.ctrl_window, int(lower_white[2]), 255, lambda x: None)
+            cv2.createTrackbar("WH_max", self.ctrl_window, int(upper_white[0]), 180, lambda x: None)
+            cv2.createTrackbar("WS_max", self.ctrl_window, int(upper_white[1]), 255, lambda x: None)
+            cv2.createTrackbar("WV_max", self.ctrl_window, int(upper_white[2]), 255, lambda x: None)
+
+            cv2.createTrackbar("min_blue_area", self.ctrl_window, int(rospy.get_param("~min_blue_area", 1100)), 20000, lambda x: None)
+            cv2.createTrackbar("min_white_area", self.ctrl_window, int(rospy.get_param("~min_white_area", 240)), 8000, lambda x: None)
+            cv2.createTrackbar("min_white_ratio_x1000", self.ctrl_window, int(rospy.get_param("~min_white_ratio_x1000", int(float(rospy.get_param("~min_white_ratio", 0.06)) * 1000.0))), 300, lambda x: None)
+            cv2.createTrackbar("blue_pad_x100", self.ctrl_window, int(rospy.get_param("~blue_padding_ratio_x100", int(float(rospy.get_param("~blue_padding_ratio", 0.16)) * 100.0))), 100, lambda x: None)
         else:
             cv2.createTrackbar("L_min", self.ctrl_window, int(rospy.get_param("~a4_lab_lower_l", 180)), 255, lambda x: None)
             cv2.createTrackbar("A_min", self.ctrl_window, int(rospy.get_param("~a4_lab_lower_a", 95)), 255, lambda x: None)
@@ -74,10 +95,10 @@ class VisionThresholdTuner(object):
             cv2.createTrackbar("B_max", self.ctrl_window, int(rospy.get_param("~a4_lab_upper_b", 139)), 255, lambda x: None)
 
             cv2.createTrackbar("min_white_area", self.ctrl_window, int(rospy.get_param("~a4_min_white_area", 2500)), 50000, lambda x: None)
-            cv2.createTrackbar("min_black_x1000", self.ctrl_window, int(rospy.get_param("~a4_min_black_ratio_x1000", 5)), 400, lambda x: None)
-            cv2.createTrackbar("max_black_x1000", self.ctrl_window, int(rospy.get_param("~a4_max_black_ratio_x1000", 250)), 1000, lambda x: None)
-            cv2.createTrackbar("aspect_min_x100", self.ctrl_window, int(rospy.get_param("~a4_min_aspect_x100", 50)), 300, lambda x: None)
-            cv2.createTrackbar("aspect_max_x100", self.ctrl_window, int(rospy.get_param("~a4_max_aspect_x100", 180)), 400, lambda x: None)
+            cv2.createTrackbar("min_black_x1000", self.ctrl_window, int(rospy.get_param("~a4_min_black_ratio_x1000", int(float(rospy.get_param("~a4_min_black_ratio", 0.005)) * 1000.0))), 400, lambda x: None)
+            cv2.createTrackbar("max_black_x1000", self.ctrl_window, int(rospy.get_param("~a4_max_black_ratio_x1000", int(float(rospy.get_param("~a4_max_black_ratio", 0.25)) * 1000.0))), 1000, lambda x: None)
+            cv2.createTrackbar("aspect_min_x100", self.ctrl_window, int(rospy.get_param("~a4_min_aspect_x100", int(float(rospy.get_param("~a4_min_aspect", 0.5)) * 100.0))), 300, lambda x: None)
+            cv2.createTrackbar("aspect_max_x100", self.ctrl_window, int(rospy.get_param("~a4_max_aspect_x100", int(float(rospy.get_param("~a4_max_aspect", 1.8)) * 100.0))), 400, lambda x: None)
 
     def image_cb(self, msg):
         self.frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
@@ -111,22 +132,22 @@ class VisionThresholdTuner(object):
             cv2.getTrackbarPos("BS_min", self.ctrl_window),
             cv2.getTrackbarPos("BV_min", self.ctrl_window)], dtype=np.uint8)
         ub = np.array([
-            cv2.getTrackbarPos("BH_max", self.window),
-            cv2.getTrackbarPos("BS_max", self.window),
-            cv2.getTrackbarPos("BV_max", self.window)], dtype=np.uint8)
+            cv2.getTrackbarPos("BH_max", self.ctrl_window),
+            cv2.getTrackbarPos("BS_max", self.ctrl_window),
+            cv2.getTrackbarPos("BV_max", self.ctrl_window)], dtype=np.uint8)
         lw = np.array([
-            cv2.getTrackbarPos("WH_min", self.window),
-            cv2.getTrackbarPos("WS_min", self.window),
-            cv2.getTrackbarPos("WV_min", self.window)], dtype=np.uint8)
+            cv2.getTrackbarPos("WH_min", self.ctrl_window),
+            cv2.getTrackbarPos("WS_min", self.ctrl_window),
+            cv2.getTrackbarPos("WV_min", self.ctrl_window)], dtype=np.uint8)
         uw = np.array([
-            cv2.getTrackbarPos("WH_max", self.window),
-            cv2.getTrackbarPos("WS_max", self.window),
-            cv2.getTrackbarPos("WV_max", self.window)], dtype=np.uint8)
+            cv2.getTrackbarPos("WH_max", self.ctrl_window),
+            cv2.getTrackbarPos("WS_max", self.ctrl_window),
+            cv2.getTrackbarPos("WV_max", self.ctrl_window)], dtype=np.uint8)
 
-        min_blue_area = float(cv2.getTrackbarPos("min_blue_area", self.window))
-        min_white_area = float(cv2.getTrackbarPos("min_white_area", self.window))
-        min_white_ratio = float(cv2.getTrackbarPos("min_white_ratio_x1000", self.window)) / 1000.0
-        blue_padding_ratio = float(cv2.getTrackbarPos("blue_pad_x100", self.window)) / 100.0
+        min_blue_area = float(cv2.getTrackbarPos("min_blue_area", self.ctrl_window))
+        min_white_area = float(cv2.getTrackbarPos("min_white_area", self.ctrl_window))
+        min_white_ratio = float(cv2.getTrackbarPos("min_white_ratio_x1000", self.ctrl_window)) / 1000.0
+        blue_padding_ratio = float(cv2.getTrackbarPos("blue_pad_x100", self.ctrl_window)) / 100.0
 
         mask_blue = cv2.inRange(hsv, lb, ub)
         mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_OPEN, self.kernel3)
@@ -137,6 +158,8 @@ class VisionThresholdTuner(object):
         white_area = 0.0
         white_box = None
         final_box = blue_box
+        roi_box = None
+        mask_white_roi = None
 
         if blue_box is not None:
             x, y, w, h = blue_box
@@ -146,12 +169,13 @@ class VisionThresholdTuner(object):
             y0 = max(0, y - pad_y)
             x1 = min(frame.shape[1], x + w + pad_x)
             y1 = min(frame.shape[0], y + h + pad_y)
+            roi_box = (x0, y0, x1, y1)
             roi = hsv[y0:y1, x0:x1]
             if roi.size > 0:
-                mask_white = cv2.inRange(roi, lw, uw)
-                mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, self.kernel3)
-                mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_CLOSE, self.kernel3)
-                local_white_box, white_area = self._find_primary_box(mask_white, min_white_area)
+                mask_white_roi = cv2.inRange(roi, lw, uw)
+                mask_white_roi = cv2.morphologyEx(mask_white_roi, cv2.MORPH_OPEN, self.kernel3)
+                mask_white_roi = cv2.morphologyEx(mask_white_roi, cv2.MORPH_CLOSE, self.kernel3)
+                local_white_box, white_area = self._find_primary_box(mask_white_roi, min_white_area)
                 if local_white_box is not None:
                     wx, wy, ww, wh = local_white_box
                     white_box = (x0 + wx, y0 + wy, ww, wh)
@@ -171,6 +195,9 @@ class VisionThresholdTuner(object):
         if blue_box is not None:
             x, y, w, h = blue_box
             cv2.rectangle(out, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        if roi_box is not None:
+            x0, y0, x1, y1 = roi_box
+            cv2.rectangle(out, (x0, y0), (x1, y1), (255, 255, 0), 1)
         if white_box is not None:
             x, y, w, h = white_box
             cv2.rectangle(out, (x, y), (x + w, y + h), (0, 255, 255), 2)
@@ -191,7 +218,20 @@ class VisionThresholdTuner(object):
         self._overlay(out, lines)
 
         mask_blue_bgr = cv2.cvtColor(mask_blue, cv2.COLOR_GRAY2BGR)
-        panel = np.hstack([out, mask_blue_bgr])
+
+        if mask_white_roi is None or roi_box is None:
+            right_panel = mask_blue_bgr
+        else:
+            x0, y0, x1, y1 = roi_box
+            white_overlay = np.zeros_like(frame)
+            roi_h = max(0, y1 - y0)
+            roi_w = max(0, x1 - x0)
+            if roi_h > 0 and roi_w > 0:
+                white_vis = cv2.cvtColor(mask_white_roi, cv2.COLOR_GRAY2BGR)
+                white_overlay[y0:y1, x0:x1] = white_vis
+            right_panel = cv2.addWeighted(mask_blue_bgr, 0.6, white_overlay, 1.0, 0.0)
+
+        panel = np.hstack([out, right_panel])
         return panel
 
     def _process_qr_a4(self, frame):
@@ -200,19 +240,19 @@ class VisionThresholdTuner(object):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         lower = np.array([
-            cv2.getTrackbarPos("L_min", self.window),
-            cv2.getTrackbarPos("A_min", self.window),
-            cv2.getTrackbarPos("B_min", self.window)], dtype=np.uint8)
+            cv2.getTrackbarPos("L_min", self.ctrl_window),
+            cv2.getTrackbarPos("A_min", self.ctrl_window),
+            cv2.getTrackbarPos("B_min", self.ctrl_window)], dtype=np.uint8)
         upper = np.array([
-            cv2.getTrackbarPos("L_max", self.window),
-            cv2.getTrackbarPos("A_max", self.window),
-            cv2.getTrackbarPos("B_max", self.window)], dtype=np.uint8)
+            cv2.getTrackbarPos("L_max", self.ctrl_window),
+            cv2.getTrackbarPos("A_max", self.ctrl_window),
+            cv2.getTrackbarPos("B_max", self.ctrl_window)], dtype=np.uint8)
 
-        min_white_area = float(cv2.getTrackbarPos("min_white_area", self.window))
-        min_black_ratio = float(cv2.getTrackbarPos("min_black_x1000", self.window)) / 1000.0
-        max_black_ratio = float(cv2.getTrackbarPos("max_black_x1000", self.window)) / 1000.0
-        min_aspect = float(cv2.getTrackbarPos("aspect_min_x100", self.window)) / 100.0
-        max_aspect = float(cv2.getTrackbarPos("aspect_max_x100", self.window)) / 100.0
+        min_white_area = float(cv2.getTrackbarPos("min_white_area", self.ctrl_window))
+        min_black_ratio = float(cv2.getTrackbarPos("min_black_x1000", self.ctrl_window)) / 1000.0
+        max_black_ratio = float(cv2.getTrackbarPos("max_black_x1000", self.ctrl_window)) / 1000.0
+        min_aspect = float(cv2.getTrackbarPos("aspect_min_x100", self.ctrl_window)) / 100.0
+        max_aspect = float(cv2.getTrackbarPos("aspect_max_x100", self.ctrl_window)) / 100.0
 
         mask_white = cv2.inRange(lab, lower, upper)
         mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, self.kernel3)
@@ -282,28 +322,28 @@ class VisionThresholdTuner(object):
     def _save_params(self):
         if self.profile == "doll":
             data = {
-                "lower_blue": [cv2.getTrackbarPos("BH_min", self.window), cv2.getTrackbarPos("BS_min", self.window), cv2.getTrackbarPos("BV_min", self.window)],
-                "upper_blue": [cv2.getTrackbarPos("BH_max", self.window), cv2.getTrackbarPos("BS_max", self.window), cv2.getTrackbarPos("BV_max", self.window)],
-                "lower_white": [cv2.getTrackbarPos("WH_min", self.window), cv2.getTrackbarPos("WS_min", self.window), cv2.getTrackbarPos("WV_min", self.window)],
-                "upper_white": [cv2.getTrackbarPos("WH_max", self.window), cv2.getTrackbarPos("WS_max", self.window), cv2.getTrackbarPos("WV_max", self.window)],
-                "min_blue_area": int(cv2.getTrackbarPos("min_blue_area", self.window)),
-                "min_white_area": int(cv2.getTrackbarPos("min_white_area", self.window)),
-                "min_white_ratio": float(cv2.getTrackbarPos("min_white_ratio_x1000", self.window)) / 1000.0,
-                "blue_padding_ratio": float(cv2.getTrackbarPos("blue_pad_x100", self.window)) / 100.0,
+                "lower_blue": [cv2.getTrackbarPos("BH_min", self.ctrl_window), cv2.getTrackbarPos("BS_min", self.ctrl_window), cv2.getTrackbarPos("BV_min", self.ctrl_window)],
+                "upper_blue": [cv2.getTrackbarPos("BH_max", self.ctrl_window), cv2.getTrackbarPos("BS_max", self.ctrl_window), cv2.getTrackbarPos("BV_max", self.ctrl_window)],
+                "lower_white": [cv2.getTrackbarPos("WH_min", self.ctrl_window), cv2.getTrackbarPos("WS_min", self.ctrl_window), cv2.getTrackbarPos("WV_min", self.ctrl_window)],
+                "upper_white": [cv2.getTrackbarPos("WH_max", self.ctrl_window), cv2.getTrackbarPos("WS_max", self.ctrl_window), cv2.getTrackbarPos("WV_max", self.ctrl_window)],
+                "min_blue_area": int(cv2.getTrackbarPos("min_blue_area", self.ctrl_window)),
+                "min_white_area": int(cv2.getTrackbarPos("min_white_area", self.ctrl_window)),
+                "min_white_ratio": float(cv2.getTrackbarPos("min_white_ratio_x1000", self.ctrl_window)) / 1000.0,
+                "blue_padding_ratio": float(cv2.getTrackbarPos("blue_pad_x100", self.ctrl_window)) / 100.0,
             }
         else:
             data = {
-                "a4_lab_lower_l": int(cv2.getTrackbarPos("L_min", self.window)),
-                "a4_lab_lower_a": int(cv2.getTrackbarPos("A_min", self.window)),
-                "a4_lab_lower_b": int(cv2.getTrackbarPos("B_min", self.window)),
-                "a4_lab_upper_l": int(cv2.getTrackbarPos("L_max", self.window)),
-                "a4_lab_upper_a": int(cv2.getTrackbarPos("A_max", self.window)),
-                "a4_lab_upper_b": int(cv2.getTrackbarPos("B_max", self.window)),
-                "a4_min_white_area": int(cv2.getTrackbarPos("min_white_area", self.window)),
-                "a4_min_black_ratio": float(cv2.getTrackbarPos("min_black_x1000", self.window)) / 1000.0,
-                "a4_max_black_ratio": float(cv2.getTrackbarPos("max_black_x1000", self.window)) / 1000.0,
-                "a4_min_aspect": float(cv2.getTrackbarPos("aspect_min_x100", self.window)) / 100.0,
-                "a4_max_aspect": float(cv2.getTrackbarPos("aspect_max_x100", self.window)) / 100.0,
+                "a4_lab_lower_l": int(cv2.getTrackbarPos("L_min", self.ctrl_window)),
+                "a4_lab_lower_a": int(cv2.getTrackbarPos("A_min", self.ctrl_window)),
+                "a4_lab_lower_b": int(cv2.getTrackbarPos("B_min", self.ctrl_window)),
+                "a4_lab_upper_l": int(cv2.getTrackbarPos("L_max", self.ctrl_window)),
+                "a4_lab_upper_a": int(cv2.getTrackbarPos("A_max", self.ctrl_window)),
+                "a4_lab_upper_b": int(cv2.getTrackbarPos("B_max", self.ctrl_window)),
+                "a4_min_white_area": int(cv2.getTrackbarPos("min_white_area", self.ctrl_window)),
+                "a4_min_black_ratio": float(cv2.getTrackbarPos("min_black_x1000", self.ctrl_window)) / 1000.0,
+                "a4_max_black_ratio": float(cv2.getTrackbarPos("max_black_x1000", self.ctrl_window)) / 1000.0,
+                "a4_min_aspect": float(cv2.getTrackbarPos("aspect_min_x100", self.ctrl_window)) / 100.0,
+                "a4_max_aspect": float(cv2.getTrackbarPos("aspect_max_x100", self.ctrl_window)) / 100.0,
             }
 
         for k, v in data.items():

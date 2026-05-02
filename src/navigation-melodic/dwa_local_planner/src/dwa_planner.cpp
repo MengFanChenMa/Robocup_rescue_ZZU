@@ -179,6 +179,7 @@ namespace dwa_local_planner {
     scored_sampling_planner_ = base_local_planner::SimpleScoredSamplingPlanner(generator_list, critics);
 
     private_nh.param("cheat_factor", cheat_factor_, 1.0);
+    private_nh.param("right_turn_bias", right_turn_bias_, 0.0);
   }
 
   // used for visualization only, total_costs are not really total costs
@@ -315,6 +316,34 @@ namespace dwa_local_planner {
     // find best trajectory by sampling and scoring the samples
     std::vector<base_local_planner::Trajectory> all_explored;
     scored_sampling_planner_.findBestTrajectory(result_traj_, &all_explored);
+
+    // Optional post-bias: prefer right-turning trajectories (negative yaw rate)
+    // without violating the original legality constraints.
+    if (right_turn_bias_ > 0.0) {
+      bool found_legal = false;
+      double best_adjusted_cost = 0.0;
+      base_local_planner::Trajectory best_traj = result_traj_;
+
+      for (std::vector<base_local_planner::Trajectory>::const_iterator t = all_explored.begin(); t != all_explored.end(); ++t) {
+        if (t->cost_ < 0) {
+          continue;
+        }
+
+        // Right turn => negative angular velocity in ROS convention.
+        const double right_turn_reward = (t->thetav_ < 0.0) ? (-right_turn_bias_ * std::fabs(t->thetav_)) : 0.0;
+        const double adjusted_cost = t->cost_ + right_turn_reward;
+
+        if (!found_legal || adjusted_cost < best_adjusted_cost) {
+          found_legal = true;
+          best_adjusted_cost = adjusted_cost;
+          best_traj = *t;
+        }
+      }
+
+      if (found_legal) {
+        result_traj_ = best_traj;
+      }
+    }
 
     if(publish_traj_pc_)
     {

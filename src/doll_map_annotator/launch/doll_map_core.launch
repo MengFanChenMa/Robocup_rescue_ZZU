@@ -27,6 +27,14 @@
     <param name="label" value="$(arg label)"/>
     <param name="target_width_m" value="$(arg target_width_m)"/>
     <param name="target_height_m" value="$(arg target_height_m)"/>
+
+    <!-- Current target HSV range + white assist (OpenCV H: 0-179) -->
+    <param name="lower_blue" value="[0, 10, 140]"/>
+    <param name="upper_blue" value="[15, 60, 220]"/>
+    <param name="lower_white" value="[0, 0, 160]"/>
+    <param name="upper_white" value="[180, 85, 255]"/>
+    <param name="min_blue_area" value="300.0"/>
+    <param name="min_white_area" value="120.0"/>
   </node>
 
   <node if="$(arg start_mapper)" pkg="doll_map_annotator" type="doll_mapper.py" name="doll_mapper" output="screen">

@@ -22,17 +22,28 @@ class DollDetectorNode(object):
         self.label = rospy.get_param("~label", "doll")
         self.output_frame_id = rospy.get_param("~output_frame_id", "")
 
-        self.lower_blue = np.array(rospy.get_param("~lower_blue", [100, 90, 70]), dtype=np.uint8)
+        # HSV defaults tuned for current target color range (OpenCV H: 0-179)
+        self.lower_blue = np.array(rospy.get_param("~lower_blue", [98, 95, 72]), dtype=np.uint8)
         self.upper_blue = np.array(rospy.get_param("~upper_blue", [124, 255, 255]), dtype=np.uint8)
-        self.lower_white = np.array(rospy.get_param("~lower_white", [0, 0, 175]), dtype=np.uint8)
-        self.upper_white = np.array(rospy.get_param("~upper_white", [180, 70, 255]), dtype=np.uint8)
+        self.lower_white = np.array(rospy.get_param("~lower_white", [0, 0, 205]), dtype=np.uint8)
+        self.upper_white = np.array(rospy.get_param("~upper_white", [180, 45, 255]), dtype=np.uint8)
 
-        self.min_blue_area = float(rospy.get_param("~min_blue_area", 700.0))
-        self.min_white_area = float(rospy.get_param("~min_white_area", 180.0))
-        self.min_white_ratio = float(rospy.get_param("~min_white_ratio", 0.01))
-        self.blue_padding_ratio = float(rospy.get_param("~blue_padding_ratio", 0.18))
+        self.use_lab_constraint = bool(rospy.get_param("~use_lab_constraint", True))
+        self.lower_lab = np.array(rospy.get_param("~lower_lab", [172, 122, 118]), dtype=np.uint8)
+        self.upper_lab = np.array(rospy.get_param("~upper_lab", [255, 134, 138]), dtype=np.uint8)
+
+        self.min_blue_area = float(rospy.get_param("~min_blue_area", 1100.0))
+        self.min_white_area = float(rospy.get_param("~min_white_area", 240.0))
+        self.min_white_ratio = float(rospy.get_param("~min_white_ratio", 0.06))
+        self.blue_padding_ratio = float(rospy.get_param("~blue_padding_ratio", 0.16))
         self.target_width_m = float(rospy.get_param("~target_width_m", 0.10))
         self.target_height_m = float(rospy.get_param("~target_height_m", 0.16))
+
+        # Warm-light compensation (gray-world white balance + optional CLAHE)
+        self.enable_color_preprocess = bool(rospy.get_param("~enable_color_preprocess", True))
+        self.enable_clahe = bool(rospy.get_param("~enable_clahe", False))
+        self.clahe_clip_limit = float(rospy.get_param("~clahe_clip_limit", 2.0))
+        self.clahe_tile_size = int(rospy.get_param("~clahe_tile_size", 8))
 
         self.period = 1.0 / max(self.detect_rate_hz, 1.0)
         self.last_process = rospy.Time(0)
@@ -116,8 +127,38 @@ class DollDetectorNode(object):
         ox, oy, ow, oh = outer_box
         return ix >= ox and iy >= oy and (ix + iw) <= (ox + ow) and (iy + ih) <= (oy + oh)
 
+    def preprocess_frame(self, frame):
+        # 1) Gray-world white balance: suppress warm/yellow cast by balancing B/G/R means.
+        wb = frame.astype(np.float32)
+        mean_b = float(np.mean(wb[:, :, 0]))
+        mean_g = float(np.mean(wb[:, :, 1]))
+        mean_r = float(np.mean(wb[:, :, 2]))
+        mean_gray = max((mean_b + mean_g + mean_r) / 3.0, 1.0)
+
+        gain_b = mean_gray / max(mean_b, 1.0)
+        gain_g = mean_gray / max(mean_g, 1.0)
+        gain_r = mean_gray / max(mean_r, 1.0)
+
+        wb[:, :, 0] = np.clip(wb[:, :, 0] * gain_b, 0, 255)
+        wb[:, :, 1] = np.clip(wb[:, :, 1] * gain_g, 0, 255)
+        wb[:, :, 2] = np.clip(wb[:, :, 2] * gain_r, 0, 255)
+        out = wb.astype(np.uint8)
+
+        # 2) Optional local contrast enhancement on luminance channel.
+        if self.enable_clahe:
+            lab = cv2.cvtColor(out, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            tile = max(2, int(self.clahe_tile_size))
+            clahe = cv2.createCLAHE(clipLimit=max(0.5, self.clahe_clip_limit), tileGridSize=(tile, tile))
+            l = clahe.apply(l)
+            out = cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2BGR)
+
+        return out
+
     def detect_object(self, frame):
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        proc = self.preprocess_frame(frame) if self.enable_color_preprocess else frame
+        hsv = cv2.cvtColor(proc, cv2.COLOR_BGR2HSV)
+        lab = cv2.cvtColor(proc, cv2.COLOR_BGR2LAB)
 
         mask_blue = cv2.inRange(hsv, self.lower_blue, self.upper_blue)
         mask_blue = cv2.morphologyEx(mask_blue, cv2.MORPH_OPEN, self.kernel3)
@@ -139,7 +180,15 @@ class DollDetectorNode(object):
         white_area = 0.0
         white_ratio = 0.0
         if roi.size > 0:
-            mask_white = cv2.inRange(roi, self.lower_white, self.upper_white)
+            roi_lab = lab[y0:y1, x0:x1]
+            l_chan, a_chan, b_chan = cv2.split(roi_lab)
+            _ = (l_chan, a_chan, b_chan)
+            hsv_mask = cv2.inRange(roi, self.lower_white, self.upper_white)
+            if self.use_lab_constraint:
+                lab_mask = cv2.inRange(roi_lab, self.lower_lab, self.upper_lab)
+                mask_white = cv2.bitwise_and(hsv_mask, lab_mask)
+            else:
+                mask_white = hsv_mask
             mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, self.kernel3)
             mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_CLOSE, self.kernel3)
             local_white_box, white_area = self.find_primary_box(mask_white, self.min_white_area)
