@@ -21,7 +21,7 @@
   <arg name="detect_rate_hz" default="8.0"/>
   <arg name="use_undistort" default="false"/>
   <arg name="publish_debug_image" default="true"/>
-  <arg name="qr_detector_mode" default="qrcode" doc="opt: qrcode,a4_like"/>
+  <arg name="qr_detector_mode" default="a4_like" doc="opt: qrcode,a4_like"/>
 
   <!-- qr_detector 极简提效参数：缩放 + ROI 优先 + 跨帧缓存 + 发布去重 -->
   <arg name="qr_resize_width" default="640"/>
