@@ -95,7 +95,13 @@ class DollDetectorNode(object):
             rospy.logwarn_throttle(5.0, "doll_detector camera_info invalid, using fallback intrinsics fx=%.1f fy=%.1f cx=%.1f cy=%.1f", self.fx, self.fy, self.cx, self.cy)
 
     def find_primary_box(self, mask, min_area):
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours_info = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # OpenCV 3 returns (image, contours, hierarchy), OpenCV 4 returns (contours, hierarchy)
+        if len(contours_info) == 3:
+            _, contours, _ = contours_info
+        else:
+            contours, _ = contours_info
+
         best_box = None
         best_area = 0.0
         for contour in contours:

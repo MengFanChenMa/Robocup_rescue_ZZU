@@ -17,6 +17,8 @@ Panels:
         - /Centroids1
         - /GlobalRRT1
         - /LocalRRT1
+        - /QrMapMarkers1
+        - /DollMapMarkers1
       Splitter Ratio: 0.5
     Tree Height: 600
   - Class: rviz/Selection
@@ -177,6 +179,22 @@ Visualization Manager:
       Enabled: true
       Marker Topic: /local_detector_shapes
       Name: LocalRRT
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /qr_mapper/markers
+      Name: QrMapMarkers
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /doll_mapper/markers
+      Name: DollMapMarkers
       Namespaces:
         {}
       Queue Size: 100

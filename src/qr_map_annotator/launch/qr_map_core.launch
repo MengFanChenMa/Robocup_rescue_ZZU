@@ -14,19 +14,21 @@
   <arg name="a4_width_m" default="0.210"/>
   <arg name="a4_height_m" default="0.297"/>
   <arg name="a4_label" default="qr_like"/>
-  <arg name="a4_lab_lower_l" default="145"/>
-  <arg name="a4_lab_lower_a" default="118"/>
-  <arg name="a4_lab_lower_b" default="126"/>
-  <arg name="a4_lab_upper_l" default="245"/>
-  <arg name="a4_lab_upper_a" default="150"/>
-  <arg name="a4_lab_upper_b" default="176"/>
+  <arg name="a4_lab_lower_l" default="150"/>
+  <arg name="a4_lab_lower_a" default="120"/>
+  <arg name="a4_lab_lower_b" default="128"/>
+  <arg name="a4_lab_upper_l" default="240"/>
+  <arg name="a4_lab_upper_a" default="148"/>
+  <arg name="a4_lab_upper_b" default="172"/>
   <arg name="a4_min_white_area" default="1800"/>
   <arg name="a4_min_black_ratio" default="0.003"/>
   <arg name="a4_max_black_ratio" default="0.30"/>
   <arg name="a4_min_aspect" default="0.45"/>
   <arg name="a4_max_aspect" default="2.00"/>
   <arg name="confirm_hits" default="2"/>
-  <arg name="one_shot_mode" default="true"/>
+  <arg name="one_shot_mode" default="false"/>
+  <arg name="cluster_radius_m" default="0.5"/>
+  <arg name="dedup_distance_m" default="0.6"/>
   <arg name="save_landmarks" default="true"/>
   <arg name="landmark_file" default="$(env HOME)/.ros/qr_landmarks.json"/>
 
@@ -59,8 +61,11 @@
 
   <node if="$(arg start_mapper)" pkg="qr_map_annotator" type="qr_mapper.py" name="qr_mapper" output="screen">
     <param name="map_frame" value="$(arg map_frame)"/>
+    <param name="detector_mode" value="$(arg detector_mode)"/>
     <param name="confirm_hits" value="$(arg confirm_hits)"/>
     <param name="one_shot_mode" value="$(arg one_shot_mode)"/>
+    <param name="cluster_radius_m" value="$(arg cluster_radius_m)"/>
+    <param name="dedup_distance_m" value="$(arg dedup_distance_m)"/>
     <param name="save_landmarks" value="$(arg save_landmarks)"/>
     <param name="landmark_file" value="$(arg landmark_file)"/>
     <param name="detections_topic" value="/qr_detector/detections"/>

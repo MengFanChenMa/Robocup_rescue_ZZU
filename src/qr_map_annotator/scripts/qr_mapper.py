@@ -23,6 +23,11 @@ class QrMapperNode(object):
         self.one_shot_mode = bool(rospy.get_param("~one_shot_mode", True))
         self.use_latest_tf = bool(rospy.get_param("~use_latest_tf", False))
         self.confidence_min = float(rospy.get_param("~confidence_min", 0.2))
+        self.detector_mode = rospy.get_param("~detector_mode", "qrcode").strip().lower()
+        if self.detector_mode not in ["qrcode", "a4_like"]:
+            self.detector_mode = "qrcode"
+        self.cluster_radius_m = float(rospy.get_param("~cluster_radius_m", 0.5))
+        self.dedup_distance_m = float(rospy.get_param("~dedup_distance_m", 0.6))
         self.save_landmarks = bool(rospy.get_param("~save_landmarks", True))
         self.landmark_file = rospy.get_param("~landmark_file", os.path.expanduser("~/.ros/qr_landmarks.json"))
         self.detections_topic = rospy.get_param("~detections_topic", "/qr_detector/detections")
@@ -84,8 +89,8 @@ class QrMapperNode(object):
                 data = json.load(f)
         except Exception:
             return
-        for text, item in data.items():
-            self.landmarks[text] = {
+        for key, item in data.items():
+            self.landmarks[key] = {
                 "x": float(item["x"]),
                 "y": float(item["y"]),
                 "z": float(item["z"]),
@@ -94,13 +99,15 @@ class QrMapperNode(object):
                 "qz": float(item["qz"]),
                 "qw": float(item["qw"]),
                 "seen_count": int(item.get("seen_count", 1)),
+                "text": item.get("text", key),
             }
 
     def _publish_markers(self):
         array_msg = MarkerArray()
-        for text in sorted(self.landmarks.keys()):
-            item = self.landmarks[text]
-            base = stable_id(text) % 1000000000
+        for key in sorted(self.landmarks.keys()):
+            item = self.landmarks[key]
+            text = item.get("text", key)
+            base = stable_id(key) % 1000000000
 
             sphere = Marker()
             sphere.header.frame_id = self.map_frame
@@ -171,12 +178,20 @@ class QrMapperNode(object):
         pose_map = self.tf_buffer.transform(pose_msg, self.map_frame, rospy.Duration(0.3))
         return pose_map
 
-    def _add_landmark(self, text, pose_map):
-        current = self.landmarks.get(text)
+    def _landmark_key(self, text, pose_map):
+        if self.one_shot_mode:
+            return text.strip()
+        grid = max(0.05, self.cluster_radius_m)
+        gx = int(round(pose_map.pose.position.x / grid))
+        gy = int(round(pose_map.pose.position.y / grid))
+        return "%s_%d_%d" % (text.strip(), gx, gy)
+
+    def _add_landmark(self, key, text, pose_map):
+        current = self.landmarks.get(key)
         seen_count = 1
         if current is not None:
             seen_count = int(current["seen_count"]) + 1
-        self.landmarks[text] = {
+        self.landmarks[key] = {
             "x": float(pose_map.pose.position.x),
             "y": float(pose_map.pose.position.y),
             "z": float(pose_map.pose.position.z),
@@ -185,24 +200,31 @@ class QrMapperNode(object):
             "qz": float(pose_map.pose.orientation.z),
             "qw": float(pose_map.pose.orientation.w),
             "seen_count": seen_count,
+            "text": text,
         }
-        landmark_msg = self._dict_to_landmark_msg(text, self.landmarks[text])
+        landmark_msg = self._dict_to_landmark_msg(text, self.landmarks[key])
         self.landmark_pub.publish(landmark_msg)
         self._publish_markers()
         self._save_landmarks()
+
+    def _find_nearby_landmark_key(self, pose_map, distance_m):
+        px = float(pose_map.pose.position.x)
+        py = float(pose_map.pose.position.y)
+        threshold = max(0.0, float(distance_m))
+        threshold_sq = threshold * threshold
+
+        for key, item in self.landmarks.items():
+            dx = px - float(item["x"])
+            dy = py - float(item["y"])
+            if (dx * dx + dy * dy) <= threshold_sq:
+                return key
+        return None
 
     def detection_callback(self, msg):
         text = msg.text.strip()
         if not text:
             return
         if msg.confidence < self.confidence_min:
-            return
-        if self.one_shot_mode and text in self.landmarks:
-            return
-
-        hit_count = self.pending_hits.get(text, 0) + 1
-        self.pending_hits[text] = hit_count
-        if hit_count < self.confirm_hits:
             return
 
         try:
@@ -242,8 +264,34 @@ class QrMapperNode(object):
             rospy.logwarn_throttle(2.0, "qr_mapper transform failed: %s", str(e))
             return
 
-        self._add_landmark(text, pose_map)
-        self.pending_hits.pop(text, None)
+        key = self._landmark_key(text, pose_map)
+
+        if self.detector_mode == "qrcode":
+            if self.one_shot_mode and key in self.landmarks:
+                return
+
+            hit_key = text.strip()
+            hit_count = self.pending_hits.get(hit_key, 0) + 1
+            self.pending_hits[hit_key] = hit_count
+            if hit_count < self.confirm_hits:
+                return
+
+            self._add_landmark(key, text, pose_map)
+            self.pending_hits.pop(hit_key, None)
+            return
+
+        nearby_key = self._find_nearby_landmark_key(pose_map, self.dedup_distance_m)
+        if nearby_key is not None:
+            return
+
+        hit_key = key
+        hit_count = self.pending_hits.get(hit_key, 0) + 1
+        self.pending_hits[hit_key] = hit_count
+        if hit_count < self.confirm_hits:
+            return
+
+        self._add_landmark(key, text, pose_map)
+        self.pending_hits.pop(hit_key, None)
 
 
 if __name__ == "__main__":

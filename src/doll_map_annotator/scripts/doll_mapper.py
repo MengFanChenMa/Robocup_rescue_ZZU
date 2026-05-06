@@ -24,7 +24,8 @@ class DollMapperNode(object):
         self.one_shot_mode = bool(rospy.get_param("~one_shot_mode", True))
         self.use_latest_tf = bool(rospy.get_param("~use_latest_tf", False))
         self.confidence_min = float(rospy.get_param("~confidence_min", 0.3))
-        self.cluster_radius_m = float(rospy.get_param("~cluster_radius_m", 1.5))
+        self.cluster_radius_m = float(rospy.get_param("~cluster_radius_m", 0.5))
+        self.dedup_distance_m = float(rospy.get_param("~dedup_distance_m", 0.6))
         self.save_landmarks = bool(rospy.get_param("~save_landmarks", True))
         self.landmark_file = rospy.get_param("~landmark_file", os.path.expanduser("~/.ros/doll_landmarks.json"))
         self.detections_topic = rospy.get_param("~detections_topic", "/doll_detector/detections")
@@ -205,6 +206,19 @@ class DollMapperNode(object):
         self._publish_markers()
         self._save_landmarks()
 
+    def _find_nearby_landmark_key(self, pose_map, distance_m):
+        px = float(pose_map.pose.position.x)
+        py = float(pose_map.pose.position.y)
+        threshold = max(0.0, float(distance_m))
+        threshold_sq = threshold * threshold
+
+        for key, item in self.landmarks.items():
+            dx = px - float(item["x"])
+            dy = py - float(item["y"])
+            if (dx * dx + dy * dy) <= threshold_sq:
+                return key
+        return None
+
     def detection_callback(self, msg):
         label = msg.label.strip()
         if not label:
@@ -249,6 +263,10 @@ class DollMapperNode(object):
             rospy.logwarn_throttle(2.0, "doll_mapper transform failed: %s", str(e))
             return
 
+        nearby_key = self._find_nearby_landmark_key(pose_map, self.dedup_distance_m)
+        if nearby_key is not None:
+            return
+
         key = self._landmark_key(label, pose_map)
         if self.one_shot_mode and key in self.landmarks:
             return
@@ -257,7 +275,6 @@ class DollMapperNode(object):
         self.pending_hits[key] = hit_count
         if hit_count < self.confirm_hits:
             return
-
 
         self._add_landmark(key, label, pose_map)
         self.pending_hits.pop(key, None)

@@ -13,7 +13,8 @@
   <arg name="one_shot_mode" default="false"/>
   <arg name="use_latest_tf" default="true"/>
   <arg name="confidence_min" default="0.2"/>
-  <arg name="cluster_radius_m" default="1.5"/>
+  <arg name="cluster_radius_m" default="0.5"/>
+  <arg name="dedup_distance_m" default="0.6"/>
   <arg name="save_landmarks" default="true"/>
   <arg name="landmark_file" default="$(env HOME)/.ros/doll_landmarks.json"/>
 
@@ -29,10 +30,10 @@
     <param name="target_height_m" value="$(arg target_height_m)"/>
 
     <!-- Current target HSV range + white assist (OpenCV H: 0-179) -->
-    <param name="lower_blue" value="[0, 10, 140]"/>
-    <param name="upper_blue" value="[15, 60, 220]"/>
-    <param name="lower_white" value="[0, 0, 160]"/>
-    <param name="upper_white" value="[180, 85, 255]"/>
+    <rosparam param="lower_blue">[2, 14, 148]</rosparam>
+    <rosparam param="upper_blue">[13, 52, 214]</rosparam>
+    <rosparam param="lower_white">[0, 0, 170]</rosparam>
+    <rosparam param="upper_white">[180, 75, 250]</rosparam>
     <param name="min_blue_area" value="300.0"/>
     <param name="min_white_area" value="120.0"/>
   </node>
@@ -44,6 +45,7 @@
     <param name="use_latest_tf" value="$(arg use_latest_tf)"/>
     <param name="confidence_min" value="$(arg confidence_min)"/>
     <param name="cluster_radius_m" value="$(arg cluster_radius_m)"/>
+    <param name="dedup_distance_m" value="$(arg dedup_distance_m)"/>
     <param name="save_landmarks" value="$(arg save_landmarks)"/>
     <param name="landmark_file" value="$(arg landmark_file)"/>
     <param name="detections_topic" value="/doll_detector/detections"/>
