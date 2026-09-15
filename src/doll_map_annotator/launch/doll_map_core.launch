@@ -10,9 +10,7 @@
   <arg name="target_width_m" default="0.10"/>
   <arg name="target_height_m" default="0.16"/>
   <arg name="confirm_hits" default="2"/>
-  <arg name="one_shot_mode" default="false"/>
-  <arg name="use_latest_tf" default="true"/>
-  <arg name="confidence_min" default="0.2"/>
+  <arg name="one_shot_mode" default="true"/>
   <arg name="cluster_radius_m" default="0.5"/>
   <arg name="dedup_distance_m" default="0.6"/>
   <arg name="save_landmarks" default="true"/>
@@ -29,25 +27,27 @@
     <param name="target_width_m" value="$(arg target_width_m)"/>
     <param name="target_height_m" value="$(arg target_height_m)"/>
 
-    <!-- Current target HSV range + white assist (OpenCV H: 0-179) -->
-    <rosparam param="lower_blue">[2, 14, 148]</rosparam>
-    <rosparam param="upper_blue">[13, 52, 214]</rosparam>
-    <rosparam param="lower_white">[0, 0, 170]</rosparam>
-    <rosparam param="upper_white">[180, 75, 250]</rosparam>
-    <param name="min_blue_area" value="300.0"/>
-    <param name="min_white_area" value="120.0"/>
+    <!-- Scene-tuned (low-angle indoor, warm light, light-blue doll clothes) -->
+    <rosparam param="lower_blue">[100, 90, 70]</rosparam>
+    <rosparam param="upper_blue">[124, 255, 255]</rosparam>
+    <rosparam param="lower_white">[0, 0, 175]</rosparam>
+    <rosparam param="upper_white">[180, 70, 255]</rosparam>
+    <param name="min_blue_area" value="180.0"/>
+    <param name="min_white_area" value="70.0"/>
+
+    <param name="enable_color_preprocess" value="true"/>
+    <param name="enable_clahe" value="false"/>
+    <param name="blue_padding_ratio" value="0.20"/>
   </node>
 
   <node if="$(arg start_mapper)" pkg="doll_map_annotator" type="doll_mapper.py" name="doll_mapper" output="screen">
     <param name="map_frame" value="$(arg map_frame)"/>
     <param name="confirm_hits" value="$(arg confirm_hits)"/>
     <param name="one_shot_mode" value="$(arg one_shot_mode)"/>
-    <param name="use_latest_tf" value="$(arg use_latest_tf)"/>
-    <param name="confidence_min" value="$(arg confidence_min)"/>
-    <param name="cluster_radius_m" value="$(arg cluster_radius_m)"/>
-    <param name="dedup_distance_m" value="$(arg dedup_distance_m)"/>
     <param name="save_landmarks" value="$(arg save_landmarks)"/>
     <param name="landmark_file" value="$(arg landmark_file)"/>
+    <param name="cluster_radius_m" value="$(arg cluster_radius_m)"/>
+    <param name="dedup_distance_m" value="$(arg dedup_distance_m)"/>
     <param name="detections_topic" value="/doll_detector/detections"/>
   </node>
 </launch>

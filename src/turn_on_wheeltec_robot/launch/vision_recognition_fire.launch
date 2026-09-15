@@ -1,0 +1,50 @@
+<launch>
+  <!-- 火焰识别可视化测试：单图像输入 + 火焰识别 + RViz -->
+  <arg name="open_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find turn_on_wheeltec_robot)/rviz/vision_recognition_test.rviz"/>
+
+  <arg name="start_camera" default="true"/>
+  <arg name="camera_mode" default="RgbCam"
+       doc="opt: Astra_S,Astra_Pro,Astra_Pro_Plus,Astra_Dabai,Astra_Gemini,RgbCam,Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
+  <arg name="if_usb_cam" default="true"/>
+
+  <!-- 只订阅一个图像输入 -->
+  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+
+  <!-- RViz中统一显示的图像话题 -->
+  <arg name="recognition_image_topic" default="/camera/rgb/recognition_image"/>
+  <!-- 默认显示火焰检测调试图；若想看原图可改为 $(arg image_topic) -->
+  <arg name="recognition_source_topic" default="/flame_detector/debug_image"/>
+
+  <arg name="detect_rate_hz" default="10.0"/>
+  <arg name="publish_debug_image" default="true"/>
+
+  <include if="$(arg start_camera)" file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch">
+    <arg name="camera_mode" value="$(arg camera_mode)"/>
+    <arg name="if_usb_cam" value="$(arg if_usb_cam)"/>
+  </include>
+
+  <node pkg="doll_map_annotator" type="flame_detector.py" name="flame_detector" output="screen"
+        launch-prefix="/usr/bin/python">
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="detect_rate_hz" value="$(arg detect_rate_hz)"/>
+    <param name="publish_debug_image" value="$(arg publish_debug_image)"/>
+
+    <!-- 红/橙/黄火焰区间（OpenCV HSV） -->
+    <param name="lower_red1" value="[0, 120, 120]"/>
+    <param name="upper_red1" value="[12, 255, 255]"/>
+    <param name="lower_red2" value="[168, 120, 120]"/>
+    <param name="upper_red2" value="[179, 255, 255]"/>
+    <param name="lower_orange" value="[10, 120, 120]"/>
+    <param name="upper_orange" value="[28, 255, 255]"/>
+
+    <!-- 轻量防误检参数 -->
+    <param name="min_area" value="250.0"/>
+    <param name="min_fill_ratio" value="0.30"/>
+  </node>
+
+  <node pkg="topic_tools" type="relay" name="rviz_recognition_relay"
+        args="$(arg recognition_source_topic) $(arg recognition_image_topic)" output="screen"/>
+
+  <node if="$(arg open_rviz)" pkg="rviz" type="rviz" name="rviz_vision_fire" args="-d $(arg rviz_config)"/>
+</launch>

@@ -1,0 +1,35 @@
+<launch>
+  <!-- 火焰颜色识别：先启动摄像头，再基于 HSV 红/橙色区域做轻量识别 -->
+  <arg name="start_camera" default="true"/>
+  <arg name="camera_mode" default="RgbCam"
+       doc="opt: Astra_S,Astra_Pro,Astra_Pro_Plus,Astra_Dabai,Astra_Gemini,RgbCam,Astra_S+RgbCam,Astra_Pro+RgbCam,Astra_Pro_Plus+RgbCam,Astra_Dabai+RgbCam,Astra_Gemini+RgbCam"/>
+  <arg name="if_usb_cam" default="true"/>
+
+  <arg name="image_topic" default="/camera/rgb/image_raw"/>
+  <arg name="detect_rate_hz" default="10.0"/>
+  <arg name="publish_debug_image" default="true"/>
+
+  <include if="$(arg start_camera)" file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch">
+    <arg name="camera_mode" value="$(arg camera_mode)"/>
+    <arg name="if_usb_cam" value="$(arg if_usb_cam)"/>
+  </include>
+
+  <node pkg="flame_color_detector" type="flame_color_detector.py" name="flame_color_detector" output="screen"
+        launch-prefix="/usr/bin/python">
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="detect_rate_hz" value="$(arg detect_rate_hz)"/>
+    <param name="publish_debug_image" value="$(arg publish_debug_image)"/>
+
+    <!-- 红/橙/黄火焰区间（OpenCV HSV） -->
+    <param name="lower_red1" value="[0, 120, 120]"/>
+    <param name="upper_red1" value="[12, 255, 255]"/>
+    <param name="lower_red2" value="[168, 120, 120]"/>
+    <param name="upper_red2" value="[179, 255, 255]"/>
+    <param name="lower_orange" value="[10, 120, 120]"/>
+    <param name="upper_orange" value="[28, 255, 255]"/>
+
+    <!-- 轻量防误检参数 -->
+    <param name="min_area" value="250.0"/>
+    <param name="min_fill_ratio" value="0.30"/>
+  </node>
+</launch>

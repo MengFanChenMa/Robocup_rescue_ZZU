@@ -37,6 +37,7 @@
   <arg name="use_undistort" default="false"/>
   <arg name="start_qr_annotator" default="true"/>
   <arg name="start_doll_annotator" default="true"/>
+  <arg name="start_flame_annotator" default="true"/>
   <arg name="qr_detector_mode" default="a4_like" doc="opt: qrcode,a4_like"/>
 
   <!-- [auto2d-v0.2.0][2026-04-22] 标注落盘与导图参数 -->
@@ -87,6 +88,11 @@
       <arg name="dedup_distance_m" value="0.6"/>
       <arg name="landmark_file" value="$(arg doll_landmark_file)"/>
     </include>
+  </group>
+
+  <!-- [auto2d-v0.2.4][2026-05-15] 火焰识别（颜色法，轻量） -->
+  <group if="$(arg start_flame_annotator)">
+    <include file="$(find doll_map_annotator)/launch/flame_detect.launch"/>
   </group>
 
   <!-- [auto2d-v0.2.3][2026-04-25] 统一RViz图像订阅入口，默认转发识别结果叠加图，便于直接观察识别情况 -->

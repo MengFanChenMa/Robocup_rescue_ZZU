@@ -41,6 +41,7 @@ catkin_package(
 catkin_install_python(PROGRAMS
   scripts/doll_detector.py
   scripts/doll_mapper.py
+  scripts/flame_detector.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

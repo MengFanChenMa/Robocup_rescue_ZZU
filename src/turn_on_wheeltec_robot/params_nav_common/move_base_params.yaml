@@ -26,6 +26,13 @@ shutdown_costmaps: false
 
 #配置恢复行为（仅保留第3步：慢速移动+清图）
 recovery_behaviors:
+  # 第一步：先原地旋转刷新观测，尽量不改变位姿
+  - name: 'recovery_behavior_rotate'
+    type: 'rotate_recovery/RotateRecovery'
+  # 第二步：再清理近场代价地图，去除局部脏障碍
+  - name: 'recovery_behavior_clear'
+    type: 'clear_costmap_recovery/ClearCostmapRecovery'
+  # 第三步：最后才慢速移动+清图（最激进，放末位）
   - name: 'recovery_behavior_move_slow'
     type: 'move_slow_and_clear/MoveSlowAndClear'
 
